@@ -1,0 +1,418 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\setsansfont{Times New Roman}
+\setmonofont{Liberation Mono}
+\usepackage[indonesian]{babel}
+\usepackage[table]{xcolor}
+\usepackage{longtable,booktabs,array,tabularx}
+\usepackage{enumitem}
+\usepackage{amssymb}
+\usepackage{xurl}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{microtype}
+\usepackage{lastpage}
+\definecolor{brandblue}{HTML}{123B63}
+\definecolor{brandgreen}{HTML}{1A8F5B}
+\hypersetup{colorlinks=true,linkcolor=brandblue,urlcolor=brandblue,citecolor=brandgreen}
+\titleformat{\section}{\Large\bfseries\color{brandblue}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{brandgreen}}{\thesubsection}{0.7em}{}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setstretch{1.08}
+\emergencystretch=2em
+\pagestyle{fancy}\fancyhf{}\rhead{\small HEALTHKATHON 2026 | PRECLAIM GUARD}\rfoot{\small Halaman \thepage\ dari \pageref{LastPage}}
+\newcommand{\callout}[2]{\begin{center}\fcolorbox{brandgreen}{green!5}{\parbox{0.92\linewidth}{\textbf{\color{brandgreen}#1}\\#2}}\end{center}}
+\begin{document}
+\begin{titlepage}
+\centering
+{\large\bfseries\color{brandgreen} BPJS KESEHATAN HEALTHKATHON 2026\par}\vspace{1.3cm}
+{\Huge\bfseries\color{brandblue} PRECLAIM GUARD\par}\vspace{0.5cm}
+{\Large\bfseries Evidence-Grounded, Policy-Aware, Local-First Pre-Claim Compliance Assistant untuk Koder JKN\par}\vspace{0.5cm}
+{\large\itshape\color{brandgreen} Detect before submit. Explain before reject.\par}\vspace{1.5cm}
+\begin{tabular}{p{4.2cm}p{9.2cm}}\hline
+\textbf{Kategori} & Efisiensi Risiko pada Fasilitas Kesehatan \\
+\textbf{Fokus} & Pre-submission claim quality \& compliance checking \\
+\textbf{Nama Tim} & ProfHabibieBanggaSamaKita \\
+\textbf{Ketua Tim} & Fatih Jawwad Al Mumtaz \\
+\textbf{Anggota} & Farrel Ghozy Affifuddin \\\hline
+\end{tabular}
+\vfill
+{\small Revisi proposal lengkap, 9 September 2026\\Disusun berdasarkan Participant Guide Healthkathon 2026 dan analisis sumber publik resmi/ilmiah. Data pasien JKN nyata tidak digunakan.}
+\end{titlepage}
+\tableofcontents\newpage
+
+\section*{Ringkasan Eksekutif}\addcontentsline{toc}{section}{Ringkasan Eksekutif}
+Setiap klaim JKN yang pending merugikan dua pihak sekaligus. Rumah sakit tidak dibayar tepat waktu sehingga arus kas tersendat dan staf harus mengerjakan berkas yang sama dua kali. Di sisi BPJS, verifikator mengulang pekerjaan untuk kesalahan yang sebenarnya bisa dicegah sebelum klaim dikirim. \textbf{PreClaim Guard} memutus lingkaran ini dengan cara sederhana: memeriksa draf klaim saat masih ada di meja koder, bukan setelah ditolak.
+
+Cara kerjanya tiga lapis. Pertama, kelengkapan evidence: apakah dokumen pendukung yang disyaratkan aturan sudah terlampir. Kedua, konsistensi klinis dan coding: apakah diagnosis, tindakan, obat, dan lama rawat saling cocok dengan evidence. Ketiga, episode dan bundling: apakah ada layanan berdekatan yang menurut aturan seharusnya ditinjau sebagai satu paket. Setiap temuan selalu disertai alasannya dalam bahasa manusia, aturan mana yang terpicu beserta versinya, dan apa yang sebaiknya diperiksa ulang oleh koder. Keputusan akhir tetap di tangan koder: perbaiki, atau setujui dengan catatan, lalu jalankan pemeriksaan ulang.
+
+Posisi kami tegas dan kami tulis di sini agar tidak salah paham. Sistem ini tidak menyarankan perubahan kode demi menaikkan pembayaran tanpa dasar. Tidak menggantikan koder. Tidak menyatakan sebuah klaim sebagai fraud. Sistem ini juga tidak menolak klaim secara otomatis dan tidak mengeluarkan skor tanpa penjelasan. Seluruh analisis data pasien berjalan di dalam lingkungan rumah sakit tanpa memakai layanan AI publik, dan prototype hanya memakai data synthetic.
+
+\callout{Nilai utama}{Menemukan masalah yang masih bisa diperbaiki saat klaim masih di meja koder, lengkap dengan alasan yang bisa ditelusuri sampai ke evidence dan aturannya. \textit{Detect before submit. Explain before reject.}}
+
+Masalahnya nyata dan terukur. Pada Juli 2024, KPK bersama Kemenkes, BPJS Kesehatan, dan BPKP menemukan dugaan fraud Rp34 miliar di tiga rumah sakit swasta lewat phantom billing (Tempo, Detik, Juli--September 2024). Pada Mei 2026, Kejari Jember menaikkan dugaan manipulasi klaim (upcoding, phantom billing) di tiga rumah sakit ke tahap penyidikan (Kompas, RMOL Jatim, Mei 2026). Di ujung yang lebih sehari-hari, Bisnis.com (Mei 2025) melaporkan nilai klaim yang ditunda BPJS mencapai Rp5,92 triliun atas 3,69 juta kasus sepanjang 2024. Angka-angka media ini kami kutip sebagai gambaran skala, bukan sebagai vonis terhadap seluruh rumah sakit. Fokus kami justru pada kesalahan manusiawi yang bisa dicegah: di RSUD Pasar Minggu (2024) pending tercatat 5,45 persen dari berkas dan 17,13 persen dari nilai klaim, dan di RSUD Dr.\ Harjono Ponorogo (November 2024) 228 dari 1.335 klaim rawat inap pending atau sekitar 17,1 persen [5][6]. Angka rumah sakit ini spesifik untuk tiap fasilitas dan tidak kami generalisasi secara nasional. Justru karena tiap rumah sakit berbeda, sistem kami dirancang dengan aturan berversi yang bisa dikalibrasi lokal, bukan aturan kaku yang sama untuk semua.
+
+Skala JKN membuat titik intervensi ini penting. Per 31 Juli 2026 tercatat 284,3 juta peserta dan 3.229 fasilitas tingkat lanjut pada data publik [2]. DJSN melaporkan 538,5 juta pemanfaatan layanan sampai September 2025, dan layanan tingkat lanjut yang hanya sekitar 21,5 persen dari kunjungan menyerap 86,9 persen beban jaminan dari total Rp139,4 triliun [3]. Artinya setiap perbaikan kualitas klaim di fasilitas tingkat lanjut berdampak paling besar per klaim yang diperbaiki. Itulah alasan kami menaruh quality gate di sana.
+
+Dalam tiga minggu hackathon, target kami satu alur utuh yang bisa dijalankan juri dari input sampai keputusan: klaim masuk, temuan keluar beserta alasannya, koder memperbaiki, pemeriksaan ulang menunjukkan apa yang berubah. Tidak ada klaim akurasi yang bombastis. Yang kami janjikan adalah sistem yang bisa dilihat bekerja di depan mata.
+
+\section{Kesesuaian dengan Healthkathon 2026}
+Healthkathon 2026 mengusung tema ``Detect Smarter, Protect JKN - Smarter Protection for a Stronger JKN: Efisiensi Risiko Program JKN'' dan menyediakan tiga kategori. PreClaim Guard memilih tepat satu kategori: \textbf{Efisiensi Risiko pada Fasilitas Kesehatan}. Participant Guide mengizinkan satu atau lebih sub-kategori di dalam kategori yang sama [1].
+\begin{longtable}{|p{4cm}|p{11cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Ketentuan} & \textbf{Implementasi pada Proposal} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Ketentuan} & \textbf{Implementasi pada Proposal} \\ \hline
+\endhead
+Satu kategori & Efisiensi Risiko pada Fasilitas Kesehatan. \\ \hline
+Satu inovasi per tim & PreClaim Guard sebagai satu solusi terpadu. \\ \hline
+Orisinalitas & Arsitektur, schema ruleset, remediation workflow, dan prototype dikembangkan tim. \\ \hline
+Perlindungan data & Data agregat publik/penelitian untuk problem validation; synthetic/anonymized untuk prototype. \\ \hline
+Human-in-the-loop & Needs review; keputusan akhir pada koder/proses resmi. \\ \hline
+Tahapan & Target submit proposal sebelum 19 September 2026. \\ \hline
+\end{longtable}
+Participant Guide tidak menyebut batas halaman atau template proposal spesifik. Dokumen ini dibuat sebagai versi lengkap dan dapat dipadatkan jika portal peserta menetapkan format tambahan [1].
+
+\subsection{Pemetaan ke sub-kategori challenge}
+\begin{longtable}{|p{4.5cm}|p{8.2cm}|p{2.3cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Sub-kategori} & \textbf{Kontribusi PreClaim Guard} & \textbf{Status} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Sub-kategori} & \textbf{Kontribusi PreClaim Guard} & \textbf{Status} \\ \hline
+\endhead
+Upcoding & Mendeteksi ketidakselarasan diagnosis/tindakan terhadap evidence; risk indicator, bukan vonis. & MVP \\ \hline
+Pemecahan episode & Episode berdekatan yang perlu review berdasarkan rule. & MVP \\ \hline
+Services unbundling / fragmentation & Kombinasi layanan yang perlu review sebagai satu paket/episode. & MVP \\ \hline
+Repeat billing / readmisi & Kemiripan episode/claim pada window waktu tertentu. & MVP terbatas \\ \hline
+Prolonged LOS & Anomaly indicator terhadap cohort/rule. & Opsional \\ \hline
+Tindakan tidak dilakukan / klaim fiktif & Evidence-to-claim traceability menandai item tanpa supporting evidence. & MVP terbatas \\ \hline
+Manipulasi hasil pemeriksaan & Inkonsistensi evidence; tidak menentukan manipulasi tanpa human review. & Roadmap \\ \hline
+\end{longtable}
+\section{Latar Belakang dan Analisis Data Nyata}
+Bagian ini menjelaskan kenapa masalah klaim layak ditangani, dengan bahasa yang bisa diikuti pembaca non teknis. Intinya ada tiga lapis bukti: skala nasional yang menunjukkan uangnya terkonsentrasi di layanan tingkat lanjut, kasus fraud yang menunjukkan risikonya nyata, dan studi rumah sakit yang menunjukkan kesalahan sehari-harinya bisa dicegah.
+
+\subsection{Skala JKN dan kenapa fasilitas tingkat lanjut yang dipilih}
+Data publik BPJS Kesehatan per 31 Juli 2026 mencatat 284.316.178 peserta JKN dan 3.229 rumah sakit serta klinik utama pada kelompok fasilitas tingkat lanjut [2]. Angka DJSN sampai September 2025 melengkapi gambaran: dari 538,5 juta pemanfaatan layanan, rawat jalan dan rawat inap tingkat lanjut (103 juta ditambah 13 juta) hanya sekitar 21,5 persen dari total kunjungan, tetapi menyerap 86,9 persen beban jaminan dari total Rp139,4 triliun, dengan rasio klaim 107,31 persen pada periode yang sama [3].
+
+Sederhananya, sebagian kecil kunjungan menyedot sebagian besar biaya. Karena itu kalau ada satu titik pemeriksaan kualitas yang harus dipasang duluan, tempat yang paling masuk akal adalah fasilitas tingkat lanjut. Setiap klaim bermasalah yang tertangkap di sana nilainya besar, jadi perbaikannya terasa. Ini bukan tuduhan bahwa layanan tingkat lanjut bermasalah, melainkan soal memilih titik dengan dampak terbesar: perbaiki sedikit di tempat yang konsentrasinya tinggi, hasilnya besar.
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[ybar,bar width=25pt,width=12cm,height=6cm,ymin=0,ymax=100,ylabel={Persentase dari total (\%)},symbolic x coords={Kunjungan tingkat lanjut,Beban jaminan tingkat lanjut},xtick=data,nodes near coords,enlarge x limits=0.28]
+\addplot coordinates {(Kunjungan tingkat lanjut,21.54) (Beban jaminan tingkat lanjut,86.9)};
+\end{axis}
+\end{tikzpicture}
+\\{\small Gambar 1. Share RJTL+RITL pada pemanfaatan vs beban jaminan s.d. September 2025. Sumber: DJSN [3].}
+\end{center}
+\callout{Analisis}{Kunjungan tingkat lanjut hanya sekitar 21,5 persen, tetapi menelan 86,9 persen beban jaminan. Konsentrasinya sekitar 4 kali lipat. Setiap perbaikan kualitas klaim di fasilitas tingkat lanjut berdampak paling besar per klaim yang diperbaiki, dan itu alasan proposal ini menaruh pemeriksaan di sana.}
+
+\subsection{Bukti dari lapangan: fraud-nya nyata, kesalahan hariannya bisa dicegah}
+Dua jenis bukti perlu dibedakan. Pertama, fraud yang disengaja memang ada dan skalanya besar. Pada 2024, KPK bersama Kemenkes, BPJS Kesehatan, dan BPKP menemukan dugaan fraud Rp34 miliar di tiga rumah sakit swasta lewat markup dan phantom billing, dengan dua rumah sakit di Sumatera Utara dan satu di Jawa Tengah (Tempo, Detik, Juli dan September 2024). Pada 2025, BPJS menahan klaim Rp5 miliar di tiga rumah sakit Jember atas dugaan overclaim rawat inap di atas 150 persen tarif resmi, dan mantan Wakil Ketua KPK Nurul Ghufron menyebut pelakunya bisa terjerat korupsi (pemberitaan November 2025). Klaim BPJS yang dibayarkan pada 2025 sendiri mencapai Rp201 triliun, naik 14,9 persen dari Rp175 triliun pada 2024 (Antara, Desember 2025). Kasus-kasus ini kami kutip dari pemberitaan media sebagai gambaran bahwa risikonya nyata, bukan sebagai vonis terhadap seluruh rumah sakit.
+
+Kedua, dan ini yang menjadi fokus kami, adalah kesalahan sehari-hari yang tidak disengaja tetapi mahal. Bisnis.com (Mei 2025) melaporkan nilai klaim yang ditunda BPJS mencapai Rp5,92 triliun atas 3,69 juta kasus sepanjang 2024. Media Indonesia (Juli 2026) melaporkan asosiasi rumah sakit swasta (ARSSI) berkomitmen menekan angka pending yang sempat menyentuh 20 persen karena memukul arus kas rumah sakit. Di tingkat fasilitas, polanya konsisten dan spesifik: RSUD Pasar Minggu (2024) mencatat pending 5,45 persen dari berkas dan 17,13 persen dari nilai klaim, dengan kelengkapan administrasi dominan dari sisi berkas dan coding dominan dari sisi nilai. RSUD Dr.\ Harjono Ponorogo (November 2024) mencatat 228 dari 1.335 klaim rawat inap pending atau sekitar 17,1 persen, dengan penyebab dokumen pendukung tidak lengkap, coding error, dan diagnosis atau prosedur tidak spesifik. Studi di rumah sakit pemerintah Jakarta Selatan (data 2017) menemukan pemeriksaan penunjang tidak lengkap 12,2 persen, inkonsistensi diagnosis sekunder 68,6 persen, dan ketidaktepatan primary coding 21,9 persen. Pemerintah sendiri mengakui masalah ini lewat Kepdirjen Yankes 45263/2024 yang menjadikan kualitas klaim JKN sebagai indikator dan mengaitkan pending dengan ketidaklengkapan rekam medis serta ketidaktepatan kode.
+\begin{longtable}{|p{4cm}|p{7cm}|p{4cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Sumber/periode} & \textbf{Temuan publik} & \textbf{Implikasi desain} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Sumber/periode} & \textbf{Temuan publik} & \textbf{Implikasi desain} \\ \hline
+\endhead
+RSUD Pasar Minggu, 2024 & Pending 5,45\% dari berkas dan 17,13\% dari nilai; kelengkapan administrasi dominan dari sisi berkas dan coding dominan dari sisi nilai. & Evidence completeness + coding consistency. \\ \hline
+RSUD Dr. Harjono S Ponorogo, Nov 2024 & 228/1.335 pending (\textasciitilde{}17,1\%); dokumen pendukung tidak lengkap, coding error, diagnosis/prosedur tidak spesifik. & Actionable pre-submit checklist. \\ \hline
+RS Pemerintah Jakarta Selatan, data 2017 & Supporting exam tidak lengkap 12,2\%; inkonsistensi diagnosis sekunder 68,6\%; ketidaktepatan primary coding 21,9\%. & Evidence-coding traceability. \\ \hline
+Kepdirjen Yankes 45263/2024 & Kualitas klaim JKN menjadi indikator; pending dikaitkan dengan ketidaklengkapan rekam medis dan ketidaktepatan code. & Problem diakui pada level indikator kebijakan. \\ \hline
+\end{longtable}
+Tabel di atas merangkum bukti yang sama agar mudah dirujuk ke desain sistem. Tiga pola berulang di semua studi: evidence tidak lengkap, coding tidak tepat atau tidak spesifik, dan inkonsistensi diagnosis sekunder terhadap evidence. Ketiganya bisa ditangani sebelum submit. Koder yang diberi tahu apa yang kurang, di klaim mana, dan berdasarkan aturan apa, bisa memperbaikinya dalam hitungan menit. Tanpa pemberitahuan itu, masalah yang sama baru ketahuan setelah pending, dan siklus revisinya memakan waktu berhari-hari. Studi-studi ini berbeda desain, periode, dan populasi, jadi kami memakainya untuk memvalidasi jenis masalahnya, bukan untuk menaksir angka nasional.
+
+\subsection{Perubahan lingkungan kebijakan dan teknologi}
+Pada Juli 2026 Kementerian Kesehatan bersama KPK, Kemendagri, BPJS Kesehatan, dan BSSN mengumumkan percepatan RME terintegrasi SATUSEHAT untuk pengelolaan klaim JKN. Rilis Kemenkes menekankan data valid, proses transparan, sistem terdokumentasi, dan mekanisme yang dapat ditelusuri [9]. Kepmenkes HK.01.07/Menkes/177/2026 membentuk tim uji coba penerapan iDRG; karena transisi berlangsung, PreClaim Guard menggunakan policy adapter dan versioned ruleset, bukan hardcode satu grouper [10].
+
+\section{Definisi Masalah dan Akar Masalah}
+\callout{Problem Statement}{Koder menerjemahkan bahasa dokter yang bebas menjadi kode dan paket yang kaku, secara manual, dalam volume tinggi. Bagaimana membantu koder menemukan ketidaksesuaian yang masih bisa diperbaiki sebelum submit, dengan alasan yang bisa ditelusuri ke evidence dan aturan, tanpa memakai layanan AI publik dan tanpa menggantikan keputusan manusia?}
+
+\subsection{Apa yang sebenarnya dibutuhkan koder}
+Bayangkan meja kerja koder di rumah sakit yang sibuk. Setiap hari puluhan berkas klaim menumpuk. Tidak semua berkas bisa diperiksa dengan kedalaman yang sama, jadi koder butuh tahu berkas mana yang harus diprioritaskan. Untuk berkas yang ditandai, koder butuh tahu kenapa: evidence apa yang kurang atau bertentangan, dan aturan apa yang terpicu. Setelah tahu masalahnya, koder memperbaiki atau menyetujui dengan catatan, lalu menjalankan pemeriksaan ulang dan melihat apa yang berubah. Semua ini harus bisa selesai tanpa mengetik ulang data dan tanpa berpindah-pindah aplikasi. Empat kebutuhan itulah yang menjadi acuan desain kami.
+
+\subsection{Akar masalah}
+\begin{longtable}{|p{4cm}|p{5.5cm}|p{5.5cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Akar masalah} & \textbf{Gejala} & \textbf{Respons produk} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Akar masalah} & \textbf{Gejala} & \textbf{Respons produk} \\ \hline
+\endhead
+Kelengkapan evidence & Dokumen penunjang/resume belum lengkap. & Evidence completeness checks. \\ \hline
+Variasi pemahaman coding/rule & Interpretasi/input tidak konsisten. & Versioned policy-as-code. \\ \hline
+Volume review & Tidak semua claim dapat direview mendalam. & Risk-based prioritization. \\ \hline
+Silo data & Evidence tersebar. & Normalizer + adapter. \\ \hline
+Perubahan aturan & Rules/grouper berkembang. & Version/effective date/source. \\ \hline
+Black-box AI & Flag tanpa alasan. & Rules-first + explainability + override. \\ \hline
+\end{longtable}
+\section{Solusi yang Diusulkan}
+PreClaim Guard adalah pintu pemeriksaan kualitas yang duduk di meja koder. Sistem membaca data klaim dan evidence terstruktur, menjalankan aturan yang pasti beserta model anomali lokal, lalu menghasilkan temuan yang perlu ditinjau. Semua ini terjadi sebelum pengajuan. Posisinya melengkapi verifikasi BPJS yang bekerja setelah klaim masuk: verifikasi BPJS bersifat represif, kami bersifat preventif. Keduanya tidak saling menggantikan.
+\callout{Non-goal}{Bukan pengganti E-Klaim atau iDRG, bukan grouper, bukan verifikator BPJS, bukan alat diagnosis, dan bukan sistem yang menyatakan fraud. Tidak ada penolakan otomatis, dan tidak ada skor tanpa penjelasan.}
+
+\subsection{Apa yang keluar dari sistem}
+Setiap klaim yang diperiksa mendapat skor risiko untuk menentukan prioritas review dan skor kesiapan sebagai penanda internal apakah klaim sudah layak submit. Keduanya adalah konfigurasi teknis internal, bukan standar resmi BPJS. Setiap temuan disertai tingkat keparahan, penjelasan dalam bahasa manusia, evidence pemicunya, dan aturan yang terpicu beserta ID, versi, dan sumbernya. Kalau temuan berasal dari model, tingkat keyakinannya dicantumkan terpisah dari skor. Rekomendasi tindakannya selalu mengarah ke review dan perbaikan, bukan ke optimasi pendapatan. Setelah koder memperbaiki atau menyetujui dengan alasan tercatat, pemeriksaan ulang menampilkan apa yang berubah beserta jejak auditnya. Tampilan perubahan inilah yang menjadi momen utama demo kami.
+
+\section{Scope MVP dan Pemetaan Challenge}
+\subsection{Tiga kemampuan inti}
+Kemampuan pertama adalah cek kelengkapan evidence. Sistem memeriksa dokumen pendukung yang disyaratkan aturan, misalnya resume medis, hasil lab, atau lembar persetujuan yang belum terlampir padahal diagnosisnya mensyaratkan. Keluarannya berupa checklist yang bisa langsung dikerjakan: apa yang kurang, di klaim mana, berdasarkan aturan apa.
+
+Kemampuan kedua adalah cek konsistensi diagnosis, tindakan, obat, lab, lama rawat, dan episode terhadap evidence. Contohnya kode tindakan yang tidak didukung diagnosis primer, atau lama rawat yang menyimpang jauh dari pasien sejenis.
+
+Kemampuan ketiga adalah cek episode dan bundling. Sistem menandai potensi duplikasi, penagihan berulang atau readmisi, dan pemecahan paket dalam jendela waktu tertentu. Intinya kombinasi layanan berdekatan yang menurut aturan seharusnya ditinjau sebagai satu paket atau satu episode.
+
+\subsection{Prioritas fitur}
+\begin{longtable}{|p{5cm}|p{5cm}|p{5cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Must Have} & \textbf{Should Have} & \textbf{Post-Hackathon} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Must Have} & \textbf{Should Have} & \textbf{Post-Hackathon} \\ \hline
+\endhead
+Structured import & Batch checking & SIMRS/RME adapter \\ \hline
+Versioned rule engine & Dashboard trend & FHIR/SATUSEHAT \\ \hline
+Evidence matcher & Rule UI & Local NLP/OCR \\ \hline
+Explainable findings & Export & Hospital calibration \\ \hline
+Risk + Readiness & Role access & Signed updates \\ \hline
+Review/override/re-check & Feedback analytics & Production IAM/SIEM \\ \hline
+\end{longtable}
+\section{Diferensiasi dan Lanskap Solusi}
+Kami sadar klaim ``AI pemeriksa klaim'' saja tidak cukup untuk menang, jadi kami tidak mengklaim sebagai yang pertama atau satu-satunya. Pemenang Healthkathon 2025 semuanya bermain di sisi peserta dan layanan preventif, dan tidak satu pun menyentuh fraud klaim di sisi fasilitas kesehatan. Artinya arena faskes pada 2026 praktis kosong dari juara bertahan. Di sisi pasar, solusi audit pra pengajuan yang ada cenderung berposisi mengoptimalkan pendapatan klaim. Kami mengambil posisi sebaliknya dan mempertahankannya sebagai pembeda arsitektur, bukan sekadar slogan: patuh dulu, bukan cuan dulu.
+\begin{longtable}{|p{4cm}|p{6cm}|p{5cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Pembanding} & \textbf{Fokus publik} & \textbf{Ruang pembeda PreClaim Guard} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Pembanding} & \textbf{Fokus publik} & \textbf{Ruang pembeda PreClaim Guard} \\ \hline
+\endhead
+NALAR (Healthkathon 2026) & Unsupported-rupiah estimation dengan boosted trees/conformal; synthetic data. & Workflow correction + policy traceability + versioned rules. \\ \hline
+BPJScan / MedMinutes & Pre-submit audit/optimization, ICD/LOS, iDRG-ready, opsi on-premise. & Compliance-first, not revenue-first; evidence-policy traceability. \\ \hline
+RSUP Dr. Wahidin 2026 & In-house AI pre-verification claim completeness. & Reusable policy-as-code architecture + remediation loop. \\ \hline
+PreClaim Guard & Policy-aware compliance assistant. & Claim → evidence → policy traceability as core design. \\ \hline
+\end{longtable}
+\subsection{Enam hal yang membedakan kami}
+Pertama, patuh dulu bukan cuan dulu: tidak ada rekomendasi yang menaikkan pembayaran tanpa dasar. Kedua, aturan dikelola sebagai kode berversi, lengkap dengan ID, tanggal berlaku, sumber, tingkat keparahan, dan test case. Ketiga, setiap temuan bisa ditelusuri dari klaim ke evidence ke aturannya. Keempat, alurnya selalu temukan, jelaskan, perbaiki atau setujui dengan alasan, lalu periksa ulang. Kelima, aturan pasti dikerjakan mesin aturan dan model hanya membantu untuk pola yang tidak praktis ditulis sebagai aturan. Keenam, sistem siap menghadapi transisi INA-CBG ke iDRG lewat adapter kebijakan, bukan aturan yang ditanam mati untuk satu grouper.
+
+\section{Arsitektur dan Alur Pengguna}
+Alur koder dirancang satu layar tanpa pindah aplikasi. Klaim masuk antrean yang sudah diurutkan berdasarkan skor risiko. Koder membuka temuan beserta alasan dan evidence-nya, memilih koreksi atau persetujuan beralasan, lalu menekan pemeriksaan ulang dan melihat apa yang berubah. Semua keputusan tercatat di jejak audit. Sistem dipasang lokal di rumah sakit sehingga data rekam medis tidak keluar dari RS. Ini kewajiban hukum berdasarkan UU No.\ 27 Tahun 2022 tentang Pelindungan Data Pribadi yang menempatkan RS sebagai pengendali sekaligus pemroses data, sekaligus kepatuhan terhadap aturan kompetisi yang melarang pemakaian data JKN asli [1].
+\begin{center}
+\begin{tikzpicture}[node distance=8mm and 8mm, every node/.style={draw,rounded corners,align=center,font=\small,inner sep=5pt}, >=Latex]
+\node (in) {Data klaim/RME\\structured + evidence};
+\node (norm) [below=of in] {Normalizer + Policy Adapter\\INA-CBG / iDRG-ready};
+\node (rule) [below left=of norm] {Versioned\\Rule Engine};
+\node (evid) [below=of norm] {Evidence + Clinical\\Consistency};
+\node (ml) [below right=of norm] {Local Anomaly\\Model};
+\node (agg) [below=18mm of evid] {Risk + Readiness Aggregator\\+ Explainability};
+\node (user) [below=of agg] {Coder Review → Correct/Override → Re-check};
+\draw[->] (in)--(norm); \draw[->](norm)--(rule); \draw[->](norm)--(evid); \draw[->](norm)--(ml); \draw[->](rule)--(agg); \draw[->](evid)--(agg); \draw[->](ml)--(agg); \draw[->](agg)--(user);
+\end{tikzpicture}
+\\{\small Gambar 2. Arsitektur konseptual; target deployment local-first/on-premise.}
+\end{center}
+
+\section{Desain Rule Engine, ML, dan Explainability}
+Pembagian kerjanya sederhana. Aturan yang pasti dikerjakan mesin aturan, karena hasilnya bisa diuji dan diaudit. Setiap aturan punya ID, versi, tanggal berlaku, sumber, tingkat keparahan, dan test case, dan dikelola sebagai kode dalam format JSON atau YAML. Model dipakai hanya untuk pola yang tidak praktis ditulis sebagai aturan: anomali lama rawat dan episode, pola angka biaya, plus kemiripan teks untuk menangkap copy paste antar klaim. Model tidak pernah mengeluarkan label fraud. Yang keluar hanya indikator risiko dengan tingkat keyakinan yang dicantumkan terpisah dari skor. Setiap aturan berversi sehingga transisi INA-CBG ke iDRG ditangani lewat adapter kebijakan, bukan aturan yang ditanam mati untuk satu grouper [10]. Target teknisnya: jalur aturan maksimal 1 detik per klaim terstruktur, 100 persen unit test lolos untuk aturan demo yang dicakup, dan 100 persen temuan punya alasan plus sumber atau evidence.
+
+\section{Strategi Data, Privasi, dan Keamanan}
+\callout{Kepatuhan data}{Participant Guide melarang real data peserta JKN tanpa izin tertulis. Data nyata dalam proposal hanya agregat publik/penelitian terbit; prototype menggunakan synthetic/anonymized data [1].}
+\begin{longtable}{|p{4cm}|p{6cm}|p{5cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Lapisan} & \textbf{Jenis data} & \textbf{Penggunaan} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Lapisan} & \textbf{Jenis data} & \textbf{Penggunaan} \\ \hline
+\endhead
+Problem validation & Agregat BPJS/DJSN, regulasi, publikasi & Skala \& prioritas use case. \\ \hline
+Prototype & Synthetic claims dengan injected anomalies & Training/evaluation tanpa data peserta. \\ \hline
+Future pilot & Data RS terkontrol setelah izin/legal basis & External validation; di luar scope awal. \\ \hline
+\end{longtable}
+Security-by-design: local inference, no public AI API pada core path, RBAC, least privilege, TLS/encryption pada pilot, audit log, signed rule package/model checksum pada roadmap, dan configurable retention.
+
+\section{Metode Evaluasi dan KPI}
+\begin{longtable}{|p{3.5cm}|p{4.5cm}|p{7cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Area} & \textbf{Metrik} & \textbf{Target prototype (bukan hasil)} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Area} & \textbf{Metrik} & \textbf{Target prototype (bukan hasil)} \\ \hline
+\endhead
+Rules & Unit test pass rate & 100\% pada covered demo rules. \\ \hline
+Detection & Precision/Recall/F1 & Laporkan per anomaly; target F1 ≥0,75 untuk ML assistive. \\ \hline
+False positive & FPR & Target <10\% pada normal synthetic set. \\ \hline
+Kecepatan & Processing time & Target ≤1 detik/structured claim pada rule path. \\ \hline
+Explainability & Finding completeness & 100\% finding punya reason dan source/evidence. \\ \hline
+Remediation & Resolved after correction & Diukur pada scripted cases. \\ \hline
+\end{longtable}
+Target di atas adalah kriteria penerimaan pengembangan yang diukur pada data synthetic dengan anomali yang sengaja disuntik dan kunci jawaban yang diketahui, bukan klaim performa di dunia nyata. Evaluasi memakai pytest plus data synthetic. Model pembantu dilaporkan per jenis anomali dengan target F1 minimal 0,75 dan false positive di bawah 10 persen pada data synthetic normal. Yang kami janjikan ke juri bukan angka yang bombastis, melainkan sistem yang bisa dijalankan di depan mata: data synthetic masuk, temuan keluar beserta alasannya, koreksi dilakukan, skor berubah.
+
+\section{Analisis Dampak}
+Dampak yang ditargetkan adalah lebih banyak issue addressable diselesaikan sebelum submit, review yang lebih terprioritas, dan traceability yang lebih baik. Formula pilot:
+\callout{Model dampak}{Resolved Issues = Total claims × baseline issue rate × addressable share × detection rate × correction adoption. Nilai rupiah tidak diekstrapolasi secara nasional dari studi satu rumah sakit.}
+RSUD Pasar Minggu menunjukkan perbedaan antara share pending berkas (5,45\%) dan share nilai (17,13\%), sehingga prioritas review perlu mempertimbangkan severity, bukan hanya jumlah flag [5]. Heterogenitas antar rumah sakit mendukung configurable rules dan local calibration.
+
+\section{Feasibility dan Roadmap Implementasi}
+\begin{longtable}{|p{5cm}|p{10cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Layer} & \textbf{Teknologi} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Layer} & \textbf{Teknologi} \\ \hline
+\endhead
+Frontend & Next.js / React \\ \hline
+Backend & FastAPI / Python \\ \hline
+Database & PostgreSQL \\ \hline
+Rules & JSON/YAML + version metadata \\ \hline
+ML & scikit-learn \\ \hline
+Deployment & Docker Compose / Ubuntu \\ \hline
+Testing & pytest + synthetic fixtures \\ \hline
+\end{longtable}
+\subsection{Rencana tiga minggu}
+\begin{longtable}{|p{4cm}|p{11cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Periode} & \textbf{Deliverable} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Periode} & \textbf{Deliverable} \\ \hline
+\endhead
+Pra-hackathon & Problem, rule schema, synthetic plan, wireframe, repo. \\ \hline
+Minggu 1 & Schema, generator, rule/evidence engine, dashboard. \\ \hline
+Minggu 2 & Risk/readiness, remediation, audit, ML baseline. \\ \hline
+Minggu 3 & Evaluation, security demo, 3 cases, pitch \& docs. \\ \hline
+\end{longtable}
+Participant Guide: registrasi 14 Agustus-14 September 2026; submit proposal 14 Agustus-19 September 2026; seleksi TBA; coaching dan Demo Day TBC; Hackathon Event TBC (diagram menyebut sekitar 3 minggu) [1].
+
+\section{Strategi Demo}
+Demo tiga menit dibuka dengan satu draf klaim dummy yang terlihat normal. Sistem memunculkan dua peringatan: dugaan upcoding karena diagnosis tidak mendukung tindakan, dan dugaan copy paste karena kemiripan tinggi dengan klaim sehari sebelumnya. Koder membuka penjelasan tiap temuan, yaitu aturan apa yang terpicu dan evidence apa yang kurang, lalu memperbaiki kode, menekan pemeriksaan ulang, dan menyaksikan skor risiko turun (misalnya 82 menjadi 19) serta skor kesiapan naik (misalnya 31 menjadi 91) pada tampilan perubahan. Alur ini kecil tetapi utuh dan bisa diverifikasi juri dari input sampai keputusan. Semua angka demo adalah synthetic dan tidak dipresentasikan sebagai performa dunia nyata.
+
+\section{Risiko, Batasan, dan Etika}
+\begin{longtable}{|p{5cm}|p{10cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Risiko/batasan} & \textbf{Mitigasi} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Risiko/batasan} & \textbf{Mitigasi} \\ \hline
+\endhead
+Outdated/wrong rule & Version, effective date, source, tests, domain review. \\ \hline
+False positive & Confidence, threshold, override, feedback. \\ \hline
+Synthetic-real gap & No generalization claim; external validation after permission. \\ \hline
+Automation bias & Needs review wording; human decision. \\ \hline
+Policy transition & Policy adapter; no hardcoded grouper. \\ \hline
+Data leakage & Local-first, minimization, RBAC, encryption/audit. \\ \hline
+Licensing coding references & Use official sources and verify rights. \\ \hline
+\end{longtable}
+\section{Skalabilitas dan Integrasi}
+Core checking engine dipisahkan dari source adapters. Roadmap integrasi meliputi SIMRS/RME, format E-Klaim yang diizinkan, dan FHIR/SATUSEHAT sesuai dokumentasi serta otorisasi resmi. PreClaim Guard diposisikan sebagai internal quality-control layer, bukan pengganti SATUSEHAT atau BPJS [9].
+
+\section{Kebutuhan Tim dan Peran}
+\begin{longtable}{|p{5cm}|p{10cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Peran} & \textbf{Tanggung jawab} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Peran} & \textbf{Tanggung jawab} \\ \hline
+\endhead
+Product/Problem Lead & Problem validation, proposal, stakeholder story, demo. \\ \hline
+Backend/Rule Engineer & Schema, policy engine, API, audit. \\ \hline
+Frontend/UX & Coder dashboard dan remediation flow. \\ \hline
+ML/Data & Synthetic generator, anomaly baseline, evaluation. \\ \hline
+Domain reviewer & Validasi rule/coding assumptions; advisor bila tersedia. \\ \hline
+\end{longtable}
+Healthkathon mengizinkan 1-3 anggota tim; peran dapat dirangkap.
+
+\section{Kesimpulan}
+PreClaim Guard memusatkan inovasi pada satu titik kerja yang konkret: meja koder, sebelum submit. Solusi ini tidak mencoba menyelesaikan seluruh fraud JKN, melainkan mengurangi risiko kualitas klaim yang bisa ditangani. Yaitu evidence yang tidak lengkap, coding yang tidak konsisten, dan paket atau episode yang perlu ditinjau. Caranya lewat pemeriksaan yang preventif, bisa dijelaskan, sadar aturan, dan tetap melibatkan manusia. Pembeda utamanya adalah ketertelusuran dari klaim ke evidence ke aturan, aturan yang dikelola sebagai kode berversi, alur temukan, jelaskan, perbaiki atau setujui, lalu periksa ulang, serta pemasangan lokal yang menjadi kewajiban hukum sekaligus kepatuhan kompetisi.
+\callout{One-liner final}{PreClaim Guard membantu koder mengetahui apa yang perlu diperiksa, mengapa perlu diperiksa, aturan dan evidence apa yang mendasarinya, dan apa yang berubah setelah diperbaiki, sebelum klaim dikirim.}
+
+\clearpage
+\section*{Daftar Pustaka}\addcontentsline{toc}{section}{Daftar Pustaka}
+\begin{enumerate}[label={[\arabic*]},leftmargin=*]
+\item BPJS Kesehatan. \textit{Participant Guide / Term \& Condition Healthkathon 2026}. Dokumen resmi peserta.
+\item BPJS Kesehatan. Data JKN per 31 Juli 2026. \url{https://www.bpjs-kesehatan.go.id/}
+\item Dewan Jaminan Sosial Nasional. \textit{Monthly Report Monitoring JKN, 30 September 2025}. \url{https://kesehatan.djsn.go.id/kesehatan/doc/laporan-bulanan/Monthly_Report_JKN_09_2025.pdf}
+\item Kementerian Kesehatan RI. Keputusan Dirjen Pelayanan Kesehatan No. HK.02.02/D/45263/2024, indikator Kualitas Klaim JKN.
+\item Wirdah, P. Soewondo, E.K. Dewi. (2025). Analisis Klaim Pending BPJS Kesehatan di RSUD Pasar Minggu Tahun 2024. COMSERVA 5(2). DOI: 10.59141/comserva.v5i2.3234.
+\item I.W. Septian, D. Nurjayanti. (2025). Factors Causing Delays in BPJS Health Inpatient Claims at Dr. Harjono S Regional General Hospital in Ponorogo Regency. JURMIKI 4(2), 46-54. DOI: 10.62951/jurmiki.v4i2.101.
+\item C. Opitasari, A. Nurwahyuni. (2018). The Completeness and accuracy of clinical coding... Health Science Journal of Indonesia 9(1). DOI: 10.22435/hsji.v9i1.464.
+\item Kementerian Kesehatan RI. Permenkes No. 16 Tahun 2019 tentang Pencegahan dan Penanganan Kecurangan (Fraud) dalam Program JKN.
+\item Kementerian Kesehatan RI. Kemenkes Perkuat Tata Kelola Klaim JKN melalui Integrasi RME dengan SATUSEHAT, 30 Juli 2026. \url{https://setjen.kemkes.go.id/news/kemenkes-perkuat-tata-kelola-klaim-jkn-melalui-integrasi-rekam-medis-elektronik-dengan-satusehat}
+\item Kementerian Kesehatan RI. Kepmenkes No. HK.01.07/Menkes/177/2026 tentang Tim Uji Coba Penerapan iDRG, KRIS, dan Rujukan Berbasis Kemampuan Pelayanan.
+\item Direktorat Mutu Tenaga Kesehatan Kemenkes. Pelatihan Pengkodean Diagnosis dan Tindakan bagi Tenaga Koder FPKTL dalam Program JKN (2025).
+\item NALAR. Model card untuk Healthkathon BPJS Kesehatan 2026. \url{https://huggingface.co/zidanristek/NalarAI}
+\item MedMinutes. BPJScan - AI Audit \& Optimasi Klaim BPJS untuk Rumah Sakit. \url{https://medminutes.io/bpjscan.html}
+\item Direktorat Jenderal Kesehatan Lanjutan Kemenkes. Optimalkan Pendapatan dan Mutu Rekam Medis RSUP Dr Wahidin Sudirohusodo Perkuat Kualitas Klaim Berbasis AI, 12 Agustus 2026.
+\item Republik Indonesia. Undang-Undang No.\ 27 Tahun 2022 tentang Pelindungan Data Pribadi.
+\item Tempo. KPK Mengendus Skandal 3 Rumah Sakit Nakal Klaim Tagihan Fiktif ke BPJS Kesehatan, Juli 2024.
+\item DetikHealth. BPJS Kesehatan Ungkap 3 RS Manipulasi Klaim, Negara Rugi Rp34 Miliar, September 2024.
+\item Bisnis.com. BPJS Kesehatan Tunda Pembayaran Klaim ke RS Rp5,92 Triliun pada 2024, Mei 2025.
+\item Antara. Klaim BPJS Kesehatan 2025 Rp201 T, Naik 14,9 Persen dari 2024, Desember 2025.
+\item Ngopibareng.id. Eks Wakil Ketua KPK: Pelaku Overclaim BPJS Kesehatan di Jember Bisa Terjerat Korupsi, November 2025.
+\item Media Indonesia. ARSSI: Tingkat Pending Klaim BPJS Kesehatan Capai 20 Persen, Pengaruhi Arus Kas Rumah Sakit, Juli 2026.
+\end{enumerate}
+
+\appendix
+\section{Contoh Policy Rule}
+Contoh hanya schema demo; rule nyata harus dari sumber resmi dan validasi domain.
+\begin{verbatim}
+{
+  "rule_id": "EVIDENCE-001",
+  "version": "2026.09-demo",
+  "effective_date": "2026-09-01",
+  "category": "clinical_evidence",
+  "severity": "high",
+  "condition": {
+    "claim_element": "DX_DEMO",
+    "required_evidence": ["EVIDENCE_DEMO"]
+  },
+  "message": "Supporting evidence was not found.",
+  "recommendation": "Review claim documentation before submission.",
+  "source": "DEMO_ONLY"
+}
+\end{verbatim}
+
+\section{Canonical Synthetic Claim Schema}
+\begin{longtable}{|p{4cm}|p{5cm}|p{6cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Field} & \textbf{Contoh} & \textbf{Catatan} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Field} & \textbf{Contoh} & \textbf{Catatan} \\ \hline
+\endhead
+claim\_id & SYN-2026-0001 & Synthetic identifier \\ \hline
+patient\_id & SYN-P-0001 & Tidak menggunakan NIK nyata \\ \hline
+service\_type & RITL & Kategori layanan \\ \hline
+diagnosis\_primary & DX\_DEMO\_A & Kode demo \\ \hline
+procedures & [PR\_DEMO\_A] & List \\ \hline
+lab\_results & LAB\_DEMO:value & Synthetic evidence \\ \hline
+length\_of\_stay & 3 & Hari \\ \hline
+claim\_amount & 5000000 & Synthetic value \\ \hline
+ground\_truth & missing\_evidence & Evaluation only \\ \hline
+\end{longtable}
+\section{Contoh API Contract}
+\begin{verbatim}
+POST /api/v1/claims/analyze
+{
+  "claim_id": "SYN-2026-0001",
+  "risk_score": 72,
+  "readiness_score": 41,
+  "status": "NEEDS_REVIEW",
+  "findings": [{
+    "type": "missing_evidence",
+    "severity": "high",
+    "rule_id": "EVIDENCE-001",
+    "reason": "Supporting evidence was not found."
+  }]
+}
+\end{verbatim}
+\end{document}
