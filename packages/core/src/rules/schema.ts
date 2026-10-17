@@ -13,6 +13,7 @@ import { z } from "zod";
  */
 
 const severity = z.enum(["warn", "info"]);
+export const RuleBasisSchema = z.enum(["official", "local", "synthetic"]);
 
 // Every evaluator type the engine implements. Adding one is a code change.
 export const EVALUATOR_TYPES = [
@@ -30,6 +31,7 @@ const base = {
   title: z.string().min(1),
   description: z.string().min(1),
   source: z.string().min(1),
+  basis: RuleBasisSchema,
 };
 
 export const RuleSchema = z.discriminatedUnion("type", [
@@ -82,5 +84,6 @@ export const RuleSetSchema = z.object({
 });
 
 export type Rule = z.infer<typeof RuleSchema>;
+export type RuleBasis = z.infer<typeof RuleBasisSchema>;
 export type RuleSet = z.infer<typeof RuleSetSchema>;
 export type EvaluatorType = (typeof EVALUATOR_TYPES)[number];
