@@ -1,6 +1,6 @@
 {
   "$schema": "./rules.schema.json",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "rules": [
     {
       "id": "dx-procedure",
@@ -74,6 +74,22 @@
       "params": {
         "chapters": ["R"],
         "message": "Diagnosis utama berupa kode gejala sementara diagnosis definitif juga tercatat pada klaim ini"
+      }
+    },
+    {
+      "id": "local-anomaly",
+      "type": "local_anomaly",
+      "version": "1.0.0",
+      "severity": "info",
+      "title": "Penyimpangan dari cohort lokal",
+      "description": "Menandai nilai klaim atau lama rawat yang menyimpang dari cohort klaim sintetis sejenis. Ini indikator statistik untuk ditinjau, bukan bukti kesalahan atau fraud.",
+      "source": "Perbandingan statistik lokal pada klaim yang diberikan; heuristic baseline, bukan model terlatih dan bukan standar klinis.",
+      "basis": "synthetic",
+      "params": {
+        "cohortFields": ["service", "diagnosis"],
+        "minimumCohort": 5,
+        "features": ["length", "amount"],
+        "zThreshold": 2.5
       }
     }
   ]
