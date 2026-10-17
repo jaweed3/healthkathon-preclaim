@@ -7,6 +7,7 @@ import {
   evaluateAll,
   initialFlags,
   knownDiagnoses,
+  readinessFor,
   recomputeRule,
   replaceFlagsForRule,
   scoreFor,
@@ -152,6 +153,7 @@ export default function App() {
       ...withCode,
       flags,
       score,
+      readiness: readinessFor(flags),
       status: statusFor(score, flags),
     }
 
@@ -164,6 +166,10 @@ export default function App() {
       evidence: input.evidence,
       previousScore: selected.score,
       newScore: score,
+      previousReadiness: selected.readiness,
+      newReadiness: readinessFor(flags),
+      previousFindings: selected.flags,
+      newFindings: flags,
     })
 
     setClaims((cs) => cs.map((c) => (c.id === updated.id ? updated : c)))

@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { CLAIM_STATUS, REVIEW_THRESHOLD, scoreTone, type AuditEvent, type Claim } from '@preclaim/core'
 import RevisionModal from './RevisionModal'
+import RecheckPanel from './RecheckPanel'
 import StatusBadge from './StatusBadge'
 
 type Props = {
@@ -27,11 +28,16 @@ const stamp = (at: string) => new Date(at).toLocaleString('id-ID')
 
 /** Why a rule fired, in the coder's language rather than the engine's. */
 const RULE_BLURB: Record<string, string> = {
-  'dx-procedure': 'Kode tindakan ini tidak ada dalam daftar kode yang lazim untuk diagnosis tersebut.',
+  'dx-procedure': 'Kode tindakan ini tidak ada dalam daftar kode yang lazim untuk diagnosis tersebut. Ini indikator untuk verifikasi klinis, bukan bukti atau vonis upcoding.',
   'length-of-stay': 'Lama rawat lebih panjang dari pola yang biasa untuk diagnosis ini di fasilitas.',
   'missing-evidence': 'Tindakan berisiko tinggi ini dikirim tanpa dokumen pendukung yang tercatat.',
   similarity:
-    'Diagnosis, tindakan, dan lama rawat mirip dengan klaim lain. Periksa kemungkinan klaim tertukar.',
+    'Diagnosis, tindakan, dan lama rawat mirip dengan klaim lain. Kemiripan adalah sinyal untuk memeriksa kemungkinan copy-paste atau klaim tertukar, bukan bukti.',
+}
+
+const DEMO_CASE: Record<string, string> = {
+  'dx-procedure': 'Skenario demo: dugaan upcoding',
+  similarity: 'Skenario demo: indikasi copy-paste',
 }
 
 export default function ClaimDetail(props: Props) {
@@ -62,8 +68,12 @@ export default function ClaimDetail(props: Props) {
         <div className="score-ring">
           <div style={{ '--score': `${claim.score * 3.6}deg` } as CSSProperties}>
             <b>{claim.score < 30 ? 'Aman' : claim.score < REVIEW_THRESHOLD ? 'Perhatian' : 'Tinggi'}</b>
-            <small>confidence</small>
+            <small>tingkat risiko</small>
           </div>
+        </div>
+        <div className="readiness-card">
+          <span>KESIAPAN</span>
+          <b>{claim.readiness}<small>/100</small></b>
         </div>
       </div>
 
@@ -85,6 +95,7 @@ export default function ClaimDetail(props: Props) {
             <div className={`flag ${f.severity}`} key={`${f.ruleId}-${f.message}`}>
               <div className="flag-icon">{f.severity === 'warn' ? '!' : 'i'}</div>
               <div>
+                {DEMO_CASE[f.ruleId] && <span className="demo-case">{DEMO_CASE[f.ruleId]}</span>}
                 <b>{f.message}</b>
                 <p>{RULE_BLURB[f.ruleId] ?? 'Ditemukan oleh pemeriksaan otomatis.'}</p>
               </div>
@@ -131,6 +142,16 @@ export default function ClaimDetail(props: Props) {
                   <div className="audit-change">
                     {event.from} <i>→</i> {event.to}
                   </div>
+                  {event.previousFindings && event.newFindings && (
+                    <RecheckPanel
+                      previousScore={event.previousScore}
+                      newScore={event.newScore}
+                      previousReadiness={event.previousReadiness}
+                      newReadiness={event.newReadiness}
+                      previousFindings={event.previousFindings}
+                      newFindings={event.newFindings}
+                    />
+                  )}
                   <p>{event.reason}</p>
                   <span className={event.evidence ? 'audit-evidence yes' : 'audit-evidence no'}>
                     {event.evidence ? '✓ evidence diperiksa' : '⚠ tanpa evidence'}

@@ -528,6 +528,28 @@ h2 {
   font-size: 8px;
   color: #97a0ab;
 }
+.readiness-card {
+  min-width: 84px;
+  padding-left: 14px;
+  border-left: 1px solid #eadfd9;
+  display: grid;
+  gap: 4px;
+}
+.readiness-card span,
+.readiness-card small {
+  color: #8290a0;
+  font-size: 9px;
+}
+.readiness-card b {
+  font-family: Manrope, sans-serif;
+  font-size: 20px;
+  color: #317c70;
+}
+.readiness-card small {
+  margin-left: 2px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+}
 .section-title {
   border-top: 1px solid #edf0f4;
   border-bottom: 1px solid #edf0f4;
@@ -564,6 +586,21 @@ h2 {
 }
 .flag b {
   font-size: 11px;
+}
+.demo-case {
+  display: table;
+  margin-bottom: 4px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #e8f5f2;
+  color: #16776d;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.theme-dark .demo-case {
+  background: #203e3a;
+  color: #82d4c8;
 }
 .flag p {
   font-size: 10px;
@@ -1517,6 +1554,67 @@ button:disabled:hover {
   color: #b8c7d1;
 }
 .theme-dark .audit-entry p {
+  color: #9aabb8;
+}
+.recheck-panel {
+  margin: 10px 0;
+  padding: 12px;
+  border: 1px solid #dcebe7;
+  border-radius: 8px;
+  background: #f6fbf9;
+}
+.recheck-heading,
+.recheck-scores,
+.recheck-findings,
+.recheck-findings > div {
+  display: grid;
+  gap: 6px;
+}
+.recheck-heading span,
+.recheck-findings span {
+  color: #607086;
+  font-size: 11px;
+}
+.recheck-scores {
+  grid-template-columns: 1fr 1fr;
+  margin: 10px 0;
+}
+.recheck-scores span {
+  display: grid;
+  gap: 2px;
+  color: #718096;
+  font-size: 10px;
+}
+.recheck-scores b {
+  color: #217c6f;
+  font-size: 16px;
+}
+.recheck-findings {
+  grid-template-columns: 1fr 1fr;
+  padding-top: 9px;
+  border-top: 1px solid #dcebe7;
+}
+.finding-done {
+  color: #217c6f !important;
+}
+.theme-dark .readiness-card {
+  border-color: #3a4d5b;
+}
+.theme-dark .readiness-card b,
+.theme-dark .recheck-scores b,
+.theme-dark .finding-done {
+  color: #4ec3a3 !important;
+}
+.theme-dark .recheck-panel {
+  background: #172d2c;
+  border-color: #31514c;
+}
+.theme-dark .recheck-findings {
+  border-color: #31514c;
+}
+.theme-dark .recheck-heading span,
+.theme-dark .recheck-findings span,
+.theme-dark .recheck-scores span {
   color: #9aabb8;
 }
 .theme-dark .audit-evidence.no {
