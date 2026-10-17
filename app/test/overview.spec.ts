@@ -30,6 +30,8 @@ test.describe('temuan pemeriksaan', () => {
     await expect(detailScore(page)).toContainText(String(SCORES.dxMismatch))
     await expect(page.getByText(FINDING.dxMismatch)).toBeVisible()
     await expect(page.getByText(FINDING.missingEvidence)).toBeVisible()
+    await expect(page.getByText('Skenario demo: dugaan upcoding')).toBeVisible()
+    await expect(page.getByText(/bukan bukti atau vonis upcoding/i)).toBeVisible()
   })
 
   test('membedakan peringatan dari informasi', async ({ page }) => {
@@ -45,6 +47,8 @@ test.describe('temuan pemeriksaan', () => {
 
     await expect(texts.some((t) => /Kemiripan/.test(t))).toBe(true)
     await expect(texts.some((t) => /Durasi rawat/.test(t))).toBe(true)
+    await expect(page.getByText('Skenario demo: indikasi copy-paste')).toBeVisible()
+    await expect(page.getByText(/bukan bukti/i).last()).toBeVisible()
   })
 
   test('klaim bersih lolos tanpa temuan', async ({ page }) => {

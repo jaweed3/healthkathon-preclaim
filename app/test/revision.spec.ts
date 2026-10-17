@@ -66,6 +66,28 @@ test.describe('memperbaiki temuan diagnosis-tindakan', () => {
     await expect(page.locator('.audit-trail')).toContainText(`${SCORES.dxMismatch} → 24`)
     await expect(page.locator('.audit-trail')).toContainText('evidence diperiksa')
   })
+
+  test('menampilkan hasil pemeriksaan ulang: skor, kesiapan, temuan selesai dan tersisa', async ({ page }) => {
+    await revise(page, { code: '47.09', reason: 'Resume medis mendukung apendektomi.' })
+
+    const panel = page.getByRole('region', { name: 'Hasil pemeriksaan ulang' })
+    await expect(panel).toContainText('Risiko 70 → 24')
+    await expect(panel).toContainText('Kesiapan 50 → 90')
+    await expect(panel).toContainText('Selesai (1)')
+    await expect(panel).toContainText(FINDING.dxMismatch)
+    await expect(panel).toContainText('Tersisa (1)')
+    await expect(panel).toContainText(FINDING.missingEvidence)
+  })
+
+  test('mempertahankan snapshot pemeriksaan ulang setelah muat ulang', async ({ page }) => {
+    await revise(page, { code: '47.09', reason: 'Resume medis mendukung apendektomi.' })
+    await page.reload()
+
+    const panel = page.getByRole('region', { name: 'Hasil pemeriksaan ulang' })
+    await expect(panel).toContainText('Risiko 70 → 24')
+    await expect(panel).toContainText('Kesiapan 50 → 90')
+    await expect(panel).toContainText(FINDING.missingEvidence)
+  })
 })
 
 test.describe('menolak revisi yang tidak dapat dibenarkan', () => {
@@ -91,8 +113,8 @@ test.describe('temuan yang bertahan setelah revisi', () => {
     await selectClaim(page, IDS.dxMismatch)
     await revise(page, { code: '47.09', reason: 'Kode dikoreksi.' })
 
-    await expect(page.getByText(FINDING.dxMismatch)).toHaveCount(0)
-    await expect(page.getByText(FINDING.missingEvidence)).toBeVisible()
+    await expect(page.locator('.flags').getByText(FINDING.dxMismatch)).toHaveCount(0)
+    await expect(page.locator('.flags').getByText(FINDING.missingEvidence)).toBeVisible()
   })
 
   test('temuan kemiripan tidak ikut terhapus di klaim lain', async ({ page }) => {

@@ -26,6 +26,7 @@ const claim = (over: Partial<Claim> = {}): Claim => ({
   amount: "Rp 1.000.000",
   status: "Perlu ditinjau",
   score: 0,
+  readiness: 0,
   diagnosis: "K35.8 — Apendisitis akut",
   procedure: "47.09 — Apendektomi lainnya",
   length: "4 hari",

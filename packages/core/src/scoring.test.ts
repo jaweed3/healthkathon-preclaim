@@ -10,6 +10,7 @@ import {
   allowedCodes,
   recomputeRule,
   replaceFlagsForRule,
+  readinessFor,
   REVIEW_THRESHOLD,
   scoreFor,
   scoreTone,
@@ -36,6 +37,7 @@ const claim = (over: Partial<Claim> = {}): Claim => ({
   amount: "Rp 1.000.000",
   status: CLAIM_STATUS.review,
   score: 0,
+  readiness: 0,
   diagnosis: "K35.8 — Apendisitis akut",
   procedure: "47.09 — Apendektomi lainnya",
   length: "4 hari",
@@ -108,6 +110,14 @@ describe("scoreFor", () => {
     expect(scoreFor([info("missing-evidence")])).toBeLessThan(
       scoreFor([warn("similarity")]),
     );
+  });
+});
+
+describe("readinessFor", () => {
+  test("uses the same findings but distinguishes blockers from advisories", () => {
+    expect(readinessFor([])).toBe(100);
+    expect(readinessFor([warn("dx-procedure")])).toBe(60);
+    expect(readinessFor([warn("dx-procedure"), info("missing-evidence")])).toBe(50);
   });
 });
 
