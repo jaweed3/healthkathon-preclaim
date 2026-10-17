@@ -28,7 +28,11 @@ export type Generated = {
 };
 
 /** Explicit edge cases, independent from the randomized synthetic corpus. */
-export type HardCase = { name: string; claim: Claim; expectedRuleIds: string[] };
+export type HardCase = {
+  name: string;
+  claim: Claim;
+  expectedRuleIds: string[];
+};
 
 export type GeneratorOptions = {
   count: number;
@@ -285,6 +289,43 @@ function markExpected(claims: Generated[]): void {
     if ((bySignature.get(signature) ?? []).length > 1)
       expected.add("similarity");
 
+    // Independent synthetic label for the local baseline: reproduce only its
+    // declared cohort/statistical condition, not its evaluator output.
+    const anomalyRule = POLICY.rules.find((r) => r.type === "local_anomaly");
+    if (anomalyRule?.type === "local_anomaly") {
+      const cohort = claims
+        .map((x) => x.claim)
+        .filter(
+          (candidate) =>
+            candidate.id !== g.claim.id &&
+            anomalyRule.params.cohortFields.every((field) =>
+              field === "service"
+                ? candidate.service === g.claim.service
+                : codeOf(candidate.diagnosis) === codeOf(g.claim.diagnosis),
+            ),
+        );
+      if (cohort.length >= anomalyRule.params.minimumCohort) {
+        const outlier = anomalyRule.params.features.some((feature) => {
+          const values = cohort.map((c) =>
+            feature === "length" ? daysOf(c.length) : amountOf(c.amount),
+          );
+          const value =
+            feature === "length"
+              ? daysOf(g.claim.length)
+              : amountOf(g.claim.amount);
+          const mean = values.reduce((sum, n) => sum + n, 0) / values.length;
+          const variance =
+            values.reduce((sum, n) => sum + (n - mean) ** 2, 0) / values.length;
+          const stddev = Math.sqrt(variance);
+          return (
+            stddev > 0 &&
+            Math.abs((value - mean) / stddev) >= anomalyRule.params.zThreshold
+          );
+        });
+        if (outlier) expected.add(anomalyRule.id);
+      }
+    }
+
     g.expected = [...expected];
   }
 }
@@ -307,9 +348,41 @@ export function runRules(
 export function hardCaseSuite(): HardCase[] {
   const base = generate({ count: 1, seed: 901 })[0].claim;
   return [
-    { name: "unknown diagnosis is advisory, not a false pass", claim: { ...base, id: "HC-UNKNOWN", diagnosis: "Z99.9 — kode tidak ada di tabel demo", procedure: "47.09" }, expectedRuleIds: ["dx-procedure"] },
-    { name: "symptom diagnosis without confirmed diagnosis remains valid", claim: { ...base, id: "HC-SYMPTOM", diagnosis: "R50.9 — Demam", procedure: "93.90", establishedDiagnoses: undefined }, expectedRuleIds: ["dx-procedure"] },
-    { name: "symptom with definitive diagnosis is reviewed", claim: { ...base, id: "HC-SYMPTOM-CONFIRMED", diagnosis: "R50.9 — Demam", establishedDiagnoses: ["J18.9"] }, expectedRuleIds: ["dx-procedure", "icd10-ch18-primary"] },
-    { name: "exact duplicate with a separate identity is similar", claim: { ...base, id: "HC-DUPLICATE" }, expectedRuleIds: ["similarity"] },
+    {
+      name: "unknown diagnosis is advisory, not a false pass",
+      claim: {
+        ...base,
+        id: "HC-UNKNOWN",
+        diagnosis: "Z99.9 — kode tidak ada di tabel demo",
+        procedure: "47.09",
+      },
+      expectedRuleIds: ["dx-procedure"],
+    },
+    {
+      name: "symptom diagnosis without confirmed diagnosis remains valid",
+      claim: {
+        ...base,
+        id: "HC-SYMPTOM",
+        diagnosis: "R50.9 — Demam",
+        procedure: "93.90",
+        establishedDiagnoses: undefined,
+      },
+      expectedRuleIds: ["dx-procedure"],
+    },
+    {
+      name: "symptom with definitive diagnosis is reviewed",
+      claim: {
+        ...base,
+        id: "HC-SYMPTOM-CONFIRMED",
+        diagnosis: "R50.9 — Demam",
+        establishedDiagnoses: ["J18.9"],
+      },
+      expectedRuleIds: ["dx-procedure", "icd10-ch18-primary"],
+    },
+    {
+      name: "exact duplicate with a separate identity is similar",
+      claim: { ...base, id: "HC-DUPLICATE" },
+      expectedRuleIds: ["similarity"],
+    },
   ];
 }
