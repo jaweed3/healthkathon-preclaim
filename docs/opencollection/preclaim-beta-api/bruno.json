@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "PreClaim Guard Beta API",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}
