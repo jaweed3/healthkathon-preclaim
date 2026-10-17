@@ -13,6 +13,61 @@ export type { RuleContext } from "./rules/engine";
 /** The rules this engine knows how to run, in file order. */
 export const INSPECTION_RULES = POLICY.rules;
 
+function cohortForRule(
+  rule: Extract<(typeof POLICY.rules)[number], { type: "local_anomaly" }>,
+  claim: Claim,
+  claims: Claim[],
+): Claim[] {
+  return claims.filter(
+    (candidate) =>
+      candidate.id !== claim.id &&
+      rule.params.cohortFields.every((field) =>
+        field === "service"
+          ? candidate.service === claim.service
+          : codeOf(candidate.diagnosis) === codeOf(claim.diagnosis),
+      ),
+  );
+}
+
+function evidenceForRule(
+  rule: (typeof POLICY.rules)[number],
+  claim: Claim,
+  claims: Claim[],
+): string[] {
+  if (rule.type === "similarity") {
+    const matches = claims
+      .filter((candidate) => candidate.id !== claim.id)
+      .filter((candidate) =>
+        rule.params.fields.every((field) => {
+          if (field === "diagnosis")
+            return codeOf(candidate.diagnosis) === codeOf(claim.diagnosis);
+          if (field === "procedure")
+            return codeOf(candidate.procedure) === codeOf(claim.procedure);
+          if (field === "length") return candidate.length === claim.length;
+          return candidate.amount === claim.amount;
+        }),
+      )
+      .map((candidate) => candidate.id);
+    return [claim.id, ...matches];
+  }
+
+  if (rule.type === "local_anomaly") {
+    const cohortSize = cohortForRule(rule, claim, claims).length;
+    return [
+      `Cohort lokal: ${cohortSize} klaim pembanding`,
+      `Lama rawat klaim: ${claim.length}`,
+      `Nilai klaim: ${claim.amount}`,
+    ];
+  }
+
+  return [
+    `Diagnosis: ${claim.diagnosis}`,
+    `Tindakan: ${claim.procedure}`,
+    `Lama rawat: ${claim.length}`,
+    `Dokumen tercatat: ${(claim.documents ?? []).join(", ") || "tidak ada"}`,
+  ];
+}
+
 /** Run every rule and return the flags it produces. */
 export function evaluateRules({
   claim,
@@ -21,13 +76,18 @@ export function evaluateRules({
   claim: Claim;
   claims: Claim[];
 }): Flag[] {
-  return POLICY.rules.flatMap((rule) => RULE_EVALUATORS[rule.type](rule, { claim, claims })
-    .map((flag) => {
-      const evidence = rule.type === "similarity"
-        ? [claim.id, ...claims.filter((candidate) => candidate.id !== claim.id && flag.message.includes(candidate.id)).map((candidate) => candidate.id)]
-        : ["Diagnosis: " + claim.diagnosis, "Tindakan: " + claim.procedure, "Lama rawat: " + claim.length, "Dokumen tercatat: " + ((claim.documents ?? []).join(", ") || "tidak ada")];
-      return { ...flag, reason: rule.description, source: rule.source, evidence };
-    }));
+  return POLICY.rules.flatMap((rule) =>
+    RULE_EVALUATORS[rule.type](rule, { claim, claims }).map((flag) => {
+      const evidence = evidenceForRule(rule, claim, claims);
+      const deviationScore =
+        "deviationScore" in flag ? flag.deviationScore : undefined;
+      const reason =
+        rule.type === "local_anomaly" && typeof deviationScore === "number"
+          ? `${rule.description} Penyimpangan: ${deviationScore.toFixed(1)} simpangan baku.`
+          : rule.description;
+      return { ...flag, reason, source: rule.source, evidence };
+    }),
+  );
 }
 
 /**
@@ -61,7 +121,9 @@ export function recomputeRule(claims: Claim[], ruleId: string): Claim[] {
   if (!rule) return claims;
 
   const next = claims.map((claim) => {
-    const fresh = evaluateRules({ claim, claims }).filter((flag) => flag.ruleId === ruleId);
+    const fresh = evaluateRules({ claim, claims }).filter(
+      (flag) => flag.ruleId === ruleId,
+    );
     return { ...claim, flags: replaceFlagsForRule(claim.flags, ruleId, fresh) };
   });
 
