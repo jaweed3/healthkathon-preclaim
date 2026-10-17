@@ -1,4 +1,4 @@
-import type { Claim, Flag } from "./schema";
+import { CLAIM_STATUS, type Claim, type Flag } from "./schema";
 import { codeOf, isPlausible, scoreFor, statusFor } from "./scoring";
 
 /**
@@ -198,8 +198,18 @@ export function recomputeRule(claims: Claim[], ruleId: string): Claim[] {
 
 /** Bring a claim's derived fields in line with its flags. */
 function settle(claim: Claim): Claim {
+  const decided =
+    claim.status === CLAIM_STATUS.approved ||
+    claim.status === CLAIM_STATUS.approvedWithNote;
   const score = scoreFor(claim.flags);
-  return { ...claim, score, status: statusFor(score, claim.flags) };
+  return {
+    ...claim,
+    score,
+    // Re-deriving status on load would silently undo an approval: the findings
+    // do not change just because the page was reloaded, so neither should the
+    // coder's decision.
+    status: decided ? claim.status : statusFor(score, claim.flags),
+  };
 }
 
 /** Re-run every rule from scratch and refresh score and status. */

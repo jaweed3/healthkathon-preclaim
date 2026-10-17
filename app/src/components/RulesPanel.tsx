@@ -1,13 +1,13 @@
-import { INSPECTION_RULES } from '@preclaim/core'
+import { INSPECTION_RULES, PLAUSIBLE } from '@preclaim/core'
 import { X } from 'lucide-react'
 
 /**
  * Show the rules that produce the findings.
  *
  * The point is falsifiability: a coder should be able to read the exact rule,
- * see whether the prototype actually evaluates it, and disagree with it. Rules
- * the prototype does not compute are labelled rather than quietly presented as
- * if they were live.
+ * see which findings it produced, and disagree with it. Every rule listed here
+ * is executable against claim data — nothing is presented as live when it is
+ * not.
  */
 export default function RulesPanel({ onClose }: { onClose: () => void }) {
   return (
@@ -16,7 +16,7 @@ export default function RulesPanel({ onClose }: { onClose: () => void }) {
         <div className="revision-head">
           <div>
             <b>Aturan pemeriksaan</b>
-            <span>Aturan yang dipakai PreClaim Guard untuk menandai temuan.</span>
+            <span>{INSPECTION_RULES.length} aturan, semuanya dihitung terhadap data klaim.</span>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="Tutup aturan pemeriksaan">
             <X size={16} />
@@ -27,13 +27,13 @@ export default function RulesPanel({ onClose }: { onClose: () => void }) {
           <section className="rule" key={rule.id}>
             <div className="rule-head">
               <b>{rule.title}</b>
-              <span className={`rule-badge ${rule.enforcement}`}>
-                {rule.enforcement === 'computed' ? 'dihitung' : 'dideklarasi'}
-              </span>
+              <code className="rule-id">{rule.id}</code>
+              <span className="rule-version">v{rule.version}</span>
             </div>
             <p>{rule.description}</p>
+            <p className="rule-source">Sumber: {rule.source}</p>
 
-            {rule.pairs && (
+            {rule.id === 'dx-procedure' && (
               <table className="rule-pairs">
                 <thead>
                   <tr>
@@ -42,12 +42,12 @@ export default function RulesPanel({ onClose }: { onClose: () => void }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {rule.pairs.map((p) => (
-                    <tr key={p.diagnosis}>
+                  {Object.entries(PLAUSIBLE).map(([dx, codes]) => (
+                    <tr key={dx}>
                       <td>
-                        <code>{p.diagnosis}</code>
+                        <code>{dx}</code>
                       </td>
-                      <td>{p.codes.join(', ')}</td>
+                      <td>{codes.join(', ')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -57,10 +57,9 @@ export default function RulesPanel({ onClose }: { onClose: () => void }) {
         ))}
 
         <p className="rules-note">
-          Aturan bertanda <b>dideklarasi</b> menyertakan data sintetis sebagai contoh temuan. Belum ada
-          perhitungan di dalam prototype ini — sistem produksi akan menghitungnya dari data klaim asli.
-          Kejujuran ini disengaja: klaim yang ditolak tanpa alasan yang bisa dijelaskan bukan pemeriksaan yang
-          bisa dipercaya.
+          Setiap temuan menautkan ke <code>ruleId</code>-nya. Mengoreksi kode tindakan hanya menjalankan ulang
+          aturan diagnosis↔tindakan; temuan lain — misalnya kemiripan klaim — tetap berlaku dan tidak ikut
+          terhapus.
         </p>
       </div>
     </div>

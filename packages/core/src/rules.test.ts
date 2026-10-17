@@ -195,12 +195,12 @@ describe("replaceFlagsForRule — the revision-wipes-flags defect", () => {
 describe("recomputeRule", () => {
   test("patches one rule across every claim", () => {
     const claims = evaluateAll(seed);
-    const dup = claims.find((c) => c.id === "CLM-240918-020")!;
+    const dup = claims.find((c) => c.id === "CLM-260918-020")!;
     expect(dup.flags.some((f) => f.ruleId === "similarity")).toBe(true);
 
     // Fixing dx-procedure everywhere must not erase the similarity findings.
     const after = recomputeRule(claims, "dx-procedure");
-    const patched = after.find((c) => c.id === "CLM-240918-020")!;
+    const patched = after.find((c) => c.id === "CLM-260918-020")!;
     expect(patched.flags.some((f) => f.ruleId === "similarity")).toBe(true);
   });
 

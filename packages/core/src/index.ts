@@ -22,6 +22,7 @@ export {
   type Revision,
 } from "./schema";
 export {
+  PLAUSIBLE,
   REVIEW_THRESHOLD,
   allowedCodes,
   averageScore,

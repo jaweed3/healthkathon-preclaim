@@ -11,7 +11,7 @@ import { ClaimSchema, type Claim } from "./schema";
  */
 const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
   {
-    id: "CLM-240918-021",
+    id: "CLM-260918-021",
     patient: "Pasien A-104",
     service: "Rawat inap • Bedah",
     date: "18 Sep 2026",
@@ -23,7 +23,7 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
     length: "4 hari",
   },
   {
-    id: "CLM-240918-020",
+    id: "CLM-260918-020",
     patient: "Pasien B-220",
     service: "Rawat inap • Interna",
     date: "18 Sep 2026",
@@ -36,9 +36,9 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
     documents: ["Resume medis"],
   },
   {
-    // Near-duplicate of CLM-240918-020: same diagnosis, procedure and length.
+    // Near-duplicate of CLM-260918-020: same diagnosis, procedure and length.
     // Exists so the similarity rule has a real pair to find.
-    id: "CLM-240918-019",
+    id: "CLM-260918-019",
     patient: "Pasien C-089",
     service: "Rawat inap • Interna",
     date: "18 Sep 2026",
@@ -50,7 +50,7 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
     length: "4 hari",
   },
   {
-    id: "CLM-240918-018",
+    id: "CLM-260918-018",
     patient: "Pasien D-312",
     service: "Rawat inap • Anak",
     date: "18 Sep 2026",
@@ -62,7 +62,7 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
     length: "9 hari",
   },
   {
-    id: "CLM-240918-017",
+    id: "CLM-260918-017",
     patient: "Pasien E-405",
     service: "Rawat jalan • Jantung",
     date: "18 Sep 2026",

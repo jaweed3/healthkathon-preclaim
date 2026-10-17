@@ -1,12 +1,12 @@
 import type { CSSProperties } from 'react'
-import { CLAIM_STATUS, scoreTone, type Claim, type Revision } from '@preclaim/core'
+import { CLAIM_STATUS, REVIEW_THRESHOLD, scoreTone, type AuditEvent, type Claim } from '@preclaim/core'
 import RevisionModal from './RevisionModal'
 import StatusBadge from './StatusBadge'
 
 type Props = {
   claim: Claim
-  /** Persisted revision trail for this claim, newest last. */
-  revisions: Revision[]
+  /** Persisted decision history for this claim, oldest first. */
+  history: AuditEvent[]
   notice: string
   note: string
   onNote: (v: string) => void
@@ -23,13 +23,20 @@ type Props = {
   onApprove: () => void
 }
 
-const FLAG_EXPLANATIONS = [
-  'Kode 47.09 biasanya membutuhkan dukungan diagnosis tindakan bedah. Periksa kembali resume medis dan kode yang dipilih.',
-  'Kemiripan 86% pada diagnosis, tindakan, dan lama rawat. Pastikan klaim tidak tertukar atau terduplikasi.',
-]
+const stamp = (at: string) => new Date(at).toLocaleString('id-ID')
+
+/** Why a rule fired, in the coder's language rather than the engine's. */
+const RULE_BLURB: Record<string, string> = {
+  'dx-procedure': 'Kode tindakan ini tidak ada dalam daftar kode yang lazim untuk diagnosis tersebut.',
+  'length-of-stay': 'Lama rawat lebih panjang dari pola yang biasa untuk diagnosis ini di fasilitas.',
+  'missing-evidence': 'Tindakan berisiko tinggi ini dikirim tanpa dokumen pendukung yang tercatat.',
+  similarity:
+    'Diagnosis, tindakan, dan lama rawat mirip dengan klaim lain. Periksa kemungkinan klaim tertukar.',
+}
 
 export default function ClaimDetail(props: Props) {
   const { claim } = props
+  const warnings = claim.flags.filter((f) => f.severity === 'warn')
 
   return (
     <section className="panel detail">
@@ -54,7 +61,7 @@ export default function ClaimDetail(props: Props) {
         </div>
         <div className="score-ring">
           <div style={{ '--score': `${claim.score * 3.6}deg` } as CSSProperties}>
-            <b>{claim.score < 30 ? 'Aman' : claim.score < 60 ? 'Perhatian' : 'Tinggi'}</b>
+            <b>{claim.score < 30 ? 'Aman' : claim.score < REVIEW_THRESHOLD ? 'Perhatian' : 'Tinggi'}</b>
             <small>confidence</small>
           </div>
         </div>
@@ -62,23 +69,24 @@ export default function ClaimDetail(props: Props) {
 
       <div className="section-title">
         <h3>Temuan pemeriksaan</h3>
-        <span>{claim.flags.length} aktif</span>
+        <span>
+          {warnings.length} peringatan · {claim.flags.length} total
+        </span>
       </div>
 
       {claim.flags.length === 0 ? (
         <div className="empty">
-          <b>✓ Tidak ada peringatan aktif</b>
+          <b>✓ Tidak ada temuan aktif</b>
           <span>Klaim ini melewati pemeriksaan dasar.</span>
         </div>
       ) : (
         <div className="flags">
-          {claim.flags.map((f, i) => (
-            <div className="flag" key={f}>
-              <div className="flag-icon">{i === 0 ? '!' : '≈'}</div>
+          {claim.flags.map((f) => (
+            <div className={`flag ${f.severity}`} key={`${f.ruleId}-${f.message}`}>
+              <div className="flag-icon">{f.severity === 'warn' ? '!' : 'i'}</div>
               <div>
-                <b>{f}</b>
-                <p>{FLAG_EXPLANATIONS[i] ?? FLAG_EXPLANATIONS[1]}</p>
-                <a>Kenapa ini ditandai? ↗</a>
+                <b>{f.message}</b>
+                <p>{RULE_BLURB[f.ruleId] ?? 'Ditemukan oleh pemeriksaan otomatis.'}</p>
               </div>
             </div>
           ))}
@@ -104,27 +112,42 @@ export default function ClaimDetail(props: Props) {
         </div>
       </div>
 
-      {props.revisions.length > 0 && (
+      {props.history.length > 0 && (
         <div className="audit-trail">
           <div className="section-title">
-            <h3>Riwayat revisi</h3>
-            <span>{props.revisions.length} tercatat</span>
+            <h3>Riwayat keputusan</h3>
+            <span>{props.history.length} tercatat</span>
           </div>
-          {props.revisions.map((r, i) => (
-            <div className="audit-entry" key={r.at}>
-              <div className="audit-meta">
-                <b>
-                  {r.previousScore} → {r.newScore}
-                </b>
-                <span>{new Date(r.at).toLocaleString('id-ID')}</span>
-              </div>
-              <div className="audit-change">
-                {r.from} <i>→</i> {r.to}
-              </div>
-              <p>{r.reason}</p>
-              <span className={r.evidence ? 'audit-evidence yes' : 'audit-evidence no'}>
-                {r.evidence ? '✓ evidence diperiksa' : '⚠ tanpa evidence'}
-              </span>
+          {props.history.map((event, i) => (
+            <div className="audit-entry" key={`${event.kind}-${event.at}-${i}`}>
+              {event.kind === 'revision' ? (
+                <>
+                  <div className="audit-meta">
+                    <b>
+                      {event.previousScore} → {event.newScore}
+                    </b>
+                    <span>{stamp(event.at)}</span>
+                  </div>
+                  <div className="audit-change">
+                    {event.from} <i>→</i> {event.to}
+                  </div>
+                  <p>{event.reason}</p>
+                  <span className={event.evidence ? 'audit-evidence yes' : 'audit-evidence no'}>
+                    {event.evidence ? '✓ evidence diperiksa' : '⚠ tanpa evidence'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="audit-meta">
+                    <b className="approval">Disetujui dengan catatan</b>
+                    <span>{stamp(event.at)}</span>
+                  </div>
+                  <p>{event.note}</p>
+                  <span className="audit-evidence no">
+                    ⚠ tetap dikirim dengan {event.findingsAtApproval.length} temuan aktif (skor {event.score})
+                  </span>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -134,10 +157,15 @@ export default function ClaimDetail(props: Props) {
 
       {claim.status === CLAIM_STATUS.review && (
         <>
+          <label className="note-label" htmlFor="coder-note">
+            Catatan koder
+            <span>wajib diisi bila menyetujui klaim dengan temuan aktif</span>
+          </label>
           <textarea
+            id="coder-note"
             value={props.note}
             onChange={(e) => props.onNote(e.target.value)}
-            placeholder="Tambahkan catatan koder (opsional)…"
+            placeholder="Tulis dasar keputusanmu, mis. verifikasi resume medis, atau koreksi kode."
           />
 
           {props.revisionOpen && (
@@ -159,7 +187,7 @@ export default function ClaimDetail(props: Props) {
               ↺ Revisi kode
             </button>
             <button className="primary" onClick={props.onApprove}>
-              ✓ Approve dengan catatan
+              ✓ Setujui dengan catatan
             </button>
           </div>
         </>

@@ -1823,3 +1823,73 @@ button:disabled:hover {
   background: #3a2a13;
   color: #e2a35c;
 }
+
+/* ---- Rule identity chips ---- */
+.rule-id {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #eef2f6;
+  color: #5b6b7a;
+}
+.rule-version {
+  font-size: 10px;
+  color: #9ba7b8;
+}
+.rule-source {
+  font-size: 11px;
+  color: #8fa0b0;
+  margin-top: 4px;
+}
+.theme-dark .rule-id {
+  background: #24333f;
+  color: #9aabb8;
+}
+.theme-dark .rule-version,
+.theme-dark .rule-source {
+  color: #7d8fa0;
+}
+
+/* ---- Coder note label ---- */
+.note-label {
+  display: block;
+  font-size: 11px;
+  color: #5b6b7a;
+  margin: 14px 0 6px;
+}
+.note-label span {
+  display: block;
+  font-size: 10px;
+  color: #9ba7b8;
+  font-weight: normal;
+}
+.theme-dark .note-label {
+  color: #9aabb8;
+}
+.theme-dark .note-label span {
+  color: #7d8fa0;
+}
+
+/* ---- Approval in the trail ---- */
+.audit-meta b.approval {
+  color: #5474ae;
+}
+.theme-dark .audit-meta b.approval {
+  color: #7fa3dc;
+}
+
+/* ---- Flag severity split ---- */
+.flag.info .flag-icon {
+  background: #eef2f6;
+  color: #5b6b7a;
+}
+.theme-dark .flag.info .flag-icon {
+  background: #24333f;
+  color: #9aabb8;
+}
+.hint.warn {
+  color: #b5651c;
+}
+.theme-dark .hint.warn {
+  color: #e0a15f;
+}

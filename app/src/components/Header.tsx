@@ -1,10 +1,11 @@
-import { Moon, ShieldCheck, Sun, Upload } from 'lucide-react'
+import { Moon, RotateCcw, ShieldCheck, Sun } from 'lucide-react'
 import type { View } from './Sidebar'
 
 type Props = {
   view: View
   dark: boolean
   onToggleTheme: () => void
+  onReset: () => void
 }
 
 const TITLES: Record<View, string> = {
@@ -13,7 +14,7 @@ const TITLES: Record<View, string> = {
   risky: 'Klaim berisiko tinggi',
 }
 
-export default function Header({ view, dark, onToggleTheme }: Props) {
+export default function Header({ view, dark, onToggleTheme, onReset }: Props) {
   return (
     <header>
       <div>
@@ -33,8 +34,8 @@ export default function Header({ view, dark, onToggleTheme }: Props) {
         >
           {dark ? <Sun size={16} /> : <Moon size={16} />}
         </button>
-        <button className="ghost" disabled title="Belum tersedia di prototype beta">
-          <Upload size={14} /> Sinkronisasi
+        <button className="ghost" onClick={onReset} title="Kembalikan ke data demo awal">
+          <RotateCcw size={14} /> Reset demo
         </button>
       </div>
     </header>

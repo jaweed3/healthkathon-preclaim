@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { allowedCodes, codeOf, isPlausible, knownDiagnoses } from '@preclaim/core'
+import { codeOf } from '@preclaim/core'
 import type { Claim } from '@preclaim/core'
 import { X } from 'lucide-react'
 
 type Props = {
-  onCreate: (draft: Omit<Claim, 'id' | 'status' | 'score' | 'flags' | 'revisions'>) => void
+  knownDiagnoses: string[]
+  /** Procedure codes the rule set accepts for a given diagnosis code. */
+  allowedFor: (diagnosis: string) => string[]
+  onCreate: (draft: Omit<Claim, 'id' | 'status' | 'score' | 'flags' | 'history'>) => void
   onClose: () => void
 }
 
@@ -13,7 +16,7 @@ const BLANK = {
   service: 'Rawat inap',
   date: '18 Sep 2026',
   amount: '',
-  diagnosis: knownDiagnoses()[0],
+  diagnosis: 'K35.8',
   procedure: '',
   length: '0 hari',
 }
@@ -21,19 +24,23 @@ const BLANK = {
 /**
  * Capture a claim draft before it is checked.
  *
- * The diagnosis picker is constrained to codes the rule set actually knows,
- * because the prototype can only score a pair it has a rule for — an unknown
- * diagnosis would silently fall through to "implausible" and read as a finding
- * rather than as missing data.
+ * Diagnosis is free text with suggestions rather than a locked dropdown: real
+ * claims carry ICD-10 codes this prototype has never seen, and silently
+ * refusing them would be a lie about the tool's coverage. An unrecognised
+ * diagnosis is surfaced as such instead — see the notice below.
  */
-export default function AddClaimModal({ onCreate, onClose }: Props) {
+export default function AddClaimModal({ knownDiagnoses, allowedFor, onCreate, onClose }: Props) {
   const [draft, setDraft] = useState(BLANK)
+  const [hasDocuments, setHasDocuments] = useState(false)
 
   const set = <K extends keyof typeof BLANK>(key: K, value: (typeof BLANK)[K]) =>
     setDraft((d) => ({ ...d, [key]: value }))
 
-  const allowed = allowedCodes(codeOf(draft.diagnosis))
-  const plausible = draft.procedure.trim() !== '' && isPlausible(draft.diagnosis, codeOf(draft.procedure))
+  const dxCode = codeOf(draft.diagnosis)
+  const allowed = allowedFor(dxCode)
+  const knownDx = knownDiagnoses.includes(dxCode)
+  const procCode = codeOf(draft.procedure)
+  const procKnown = allowed.includes(procCode)
 
   const valid =
     draft.patient.trim() !== '' &&
@@ -43,7 +50,12 @@ export default function AddClaimModal({ onCreate, onClose }: Props) {
 
   const submit = () => {
     if (!valid) return
-    onCreate({ ...draft, patient: draft.patient.trim(), amount: draft.amount.trim() })
+    onCreate({
+      ...draft,
+      patient: draft.patient.trim(),
+      amount: draft.amount.trim(),
+      documents: hasDocuments ? ['Dokumen pendukung (dicatat manual)'] : undefined,
+    })
   }
 
   return (
@@ -68,14 +80,23 @@ export default function AddClaimModal({ onCreate, onClose }: Props) {
       </label>
 
       <label>
-        Diagnosis
-        <select value={draft.diagnosis} onChange={(e) => set('diagnosis', e.target.value)}>
-          {knownDiagnoses().map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
+        Diagnosis (ICD-10)
+        <input
+          value={draft.diagnosis}
+          onChange={(e) => set('diagnosis', e.target.value)}
+          placeholder="K35.8"
+          list="known-diagnoses"
+        />
+        <datalist id="known-diagnoses">
+          {knownDiagnoses.map((d) => (
+            <option key={d} value={d} />
           ))}
-        </select>
+        </datalist>
+        {!knownDx && draft.diagnosis.trim() !== '' && (
+          <small className="hint warn">
+            Kode ini belum dikenal aturan — temuan kesesuaian tidak dapat dihitung.
+          </small>
+        )}
       </label>
 
       <label>
@@ -92,9 +113,9 @@ export default function AddClaimModal({ onCreate, onClose }: Props) {
           ))}
         </datalist>
         <small className="hint">
-          {allowed.length > 0
-            ? `Kode yang lazim untuk ${draft.diagnosis}: ${allowed.join(', ')}`
-            : 'Belum ada aturan untuk diagnosis ini.'}
+          {knownDx
+            ? `Kode yang lazim untuk ${dxCode}: ${allowed.join(', ')}`
+            : 'Daftar kode tidak tersedia untuk diagnosis ini.'}
         </small>
       </label>
 
@@ -114,11 +135,18 @@ export default function AddClaimModal({ onCreate, onClose }: Props) {
         <input value={draft.amount} onChange={(e) => set('amount', e.target.value)} placeholder="Rp 0" />
       </label>
 
+      <label className="check-row">
+        <input type="checkbox" checked={hasDocuments} onChange={(e) => setHasDocuments(e.target.checked)} />{' '}
+        Sudah ada dokumen pendukung (resume medis, hasil lab, foto).
+      </label>
+
       {draft.procedure.trim() !== '' && (
-        <div className={plausible ? 'draft-check ok' : 'draft-check warn'}>
-          {plausible
-            ? '✓ Kode tindakan sesuai dengan diagnosis.'
-            : `⚠ Kode ${codeOf(draft.procedure)} tidak ada di daftar yang lazim untuk ${draft.diagnosis}. Klaim akan ditahan untuk ditinjau.`}
+        <div className={procKnown ? 'draft-check ok' : 'draft-check warn'}>
+          {procKnown
+            ? '✓ Kode tindakan ada dalam daftar yang lazim untuk diagnosis ini.'
+            : knownDx
+              ? `⚠ Kode ${procCode} tidak lazim untuk ${dxCode}. Klaim akan ditahan untuk ditinjau.`
+              : `⚠ Diagnosis belum dikenal aturan, sehingga ${procCode} tidak dapat diverifikasi.`}
         </div>
       )}
 
