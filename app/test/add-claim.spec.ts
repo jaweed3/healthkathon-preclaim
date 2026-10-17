@@ -7,9 +7,14 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('validasi formulir', () => {
-  test('tombol nonaktif sampai field wajib terisi', async ({ page }) => {
+  test('menandai field wajib yang kosong saat mencoba menambahkan klaim', async ({ page }) => {
     await openAdd(page)
-    await expect(page.getByRole('button', { name: 'Tambahkan klaim' })).toBeDisabled()
+    await page.getByRole('button', { name: 'Tambahkan klaim' }).click()
+
+    await expect(page.getByText('Nama pasien wajib diisi.')).toBeVisible()
+    await expect(page.getByText('Kode tindakan wajib diisi.')).toBeVisible()
+    await expect(page.getByText('Total tagihan wajib diisi.')).toBeVisible()
+    await expect(page.getByLabel('Pasien')).toHaveAttribute('aria-invalid', 'true')
 
     await page.getByLabel('Pasien').fill('Pasien H-003')
     await page.getByLabel('Kode tindakan').fill('93.96')
@@ -23,6 +28,20 @@ test.describe('validasi formulir', () => {
     await page.getByRole('button', { name: 'Batal' }).click()
 
     await expect(page.locator('.revision-box')).toHaveCount(0)
+  })
+})
+
+test.describe('navigasi mobile', () => {
+  test('hamburger membuka navigasi dan memilih halaman', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole('button', { name: 'Buka navigasi' }).click()
+
+    const navigation = page.locator('aside.mobile-nav-open')
+    await expect(navigation.getByRole('button', { name: /Risiko tinggi/ })).toBeVisible()
+    await navigation.getByRole('button', { name: /Risiko tinggi/ }).click()
+
+    await expect(page.getByRole('heading', { name: 'Klaim berisiko tinggi' })).toBeVisible()
+    await expect(page.locator('aside.mobile-nav-open')).toHaveCount(0)
   })
 })
 

@@ -41,6 +41,17 @@ test.describe('mode gelap', () => {
     await page.getByRole('button', { name: '↺ Revisi kode' }).click()
 
     expect(await luminance(page, '.revision-box')).toBeLessThan(0.5)
+    expect(await luminance(page, '.modal-card input:not([type="checkbox"])')).toBeLessThan(0.25)
+    expect(await luminance(page, '.modal-card textarea')).toBeLessThan(0.25)
+  })
+
+  test('drawer navigasi dan modal aturan mengikuti dark mode di mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole('button', { name: 'Buka navigasi' }).click()
+    expect(await luminance(page, '#mobile-navigation.mobile-nav-open')).toBeLessThan(0.2)
+
+    await page.getByRole('button', { name: 'Aturan pemeriksaan' }).click()
+    expect(await luminance(page, '.rules-panel')).toBeLessThan(0.2)
   })
 })
 

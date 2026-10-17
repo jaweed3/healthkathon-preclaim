@@ -9,9 +9,9 @@ import { X } from 'lucide-react'
  * is executable against claim data — nothing is presented as live when it is
  * not.
  */
-export default function RulesPanel({ onClose }: { onClose: () => void }) {
+export default function RulesPanel({ onClose, dark }: { onClose: () => void; dark: boolean }) {
   return (
-    <div className="rules-overlay" role="dialog" aria-modal="true" aria-label="Aturan pemeriksaan">
+    <div className={`rules-overlay ${dark ? 'theme-dark' : ''}`} role="dialog" aria-modal="true" aria-label="Aturan pemeriksaan">
       <div className="rules-panel">
         <div className="revision-head">
           <div>

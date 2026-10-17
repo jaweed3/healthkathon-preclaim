@@ -1,4 +1,4 @@
-import { Moon, RotateCcw, ShieldCheck, Sun } from 'lucide-react'
+import { Menu, Moon, RotateCcw, ShieldCheck, Sun, X } from 'lucide-react'
 import type { View } from './Sidebar'
 
 type Props = {
@@ -6,6 +6,8 @@ type Props = {
   dark: boolean
   onToggleTheme: () => void
   onReset: () => void
+  menuOpen: boolean
+  onToggleMenu: () => void
 }
 
 const TITLES: Record<View, string> = {
@@ -14,9 +16,18 @@ const TITLES: Record<View, string> = {
   risky: 'Klaim berisiko tinggi',
 }
 
-export default function Header({ view, dark, onToggleTheme, onReset }: Props) {
+export default function Header({ view, dark, onToggleTheme, onReset, menuOpen, onToggleMenu }: Props) {
   return (
     <header>
+      <button
+        className="mobile-menu-toggle icon-button"
+        aria-label={menuOpen ? 'Tutup navigasi' : 'Buka navigasi'}
+        aria-expanded={menuOpen}
+        aria-controls="mobile-navigation"
+        onClick={onToggleMenu}
+      >
+        {menuOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
       <div>
         <p className="eyebrow">RABU, 18 SEPTEMBER 2026</p>
         <h1>{TITLES[view]}</h1>

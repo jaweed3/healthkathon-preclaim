@@ -81,6 +81,7 @@ export default function App() {
   const [revisionOpen, setRevisionOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [newCode, setNewCode] = useState('')
   const [reason, setReason] = useState('')
   const [evidence, setEvidence] = useState(false)
@@ -282,15 +283,26 @@ export default function App() {
 
   return (
     <div className={`shell ${dark ? 'theme-dark' : ''}`}>
+      {mobileNavOpen && <button className="mobile-nav-backdrop" aria-label="Tutup navigasi" onClick={() => setMobileNavOpen(false)} />}
       <Sidebar
         view={view}
         onView={setView}
         onShowRules={() => setRulesOpen(true)}
         reviewCount={reviewCount}
+        riskCount={atRisk}
+        className={mobileNavOpen ? 'mobile-nav-open' : ''}
+        onNavigate={() => setMobileNavOpen(false)}
       />
 
       <main>
-        <Header view={view} dark={dark} onToggleTheme={toggleTheme} onReset={resetDemo} />
+        <Header
+          view={view}
+          dark={dark}
+          onToggleTheme={toggleTheme}
+          onReset={resetDemo}
+          menuOpen={mobileNavOpen}
+          onToggleMenu={() => setMobileNavOpen((open) => !open)}
+        />
         <StatsBar claims={claims} />
 
         <div className="content">
@@ -323,18 +335,20 @@ export default function App() {
               onConfirmRevision={confirmRevision}
               onCloseRevision={() => setRevisionOpen(false)}
               onApprove={approve}
+              dark={dark}
             />
           )}
         </div>
       </main>
 
-      {rulesOpen && <RulesPanel onClose={() => setRulesOpen(false)} />}
+      {rulesOpen && <RulesPanel dark={dark} onClose={() => setRulesOpen(false)} />}
       {addOpen && (
         <AddClaimModal
           knownDiagnoses={knownDiagnoses()}
           allowedFor={(d) => allowedCodes(codeOf(d))}
           onCreate={createClaim}
           onClose={() => setAddOpen(false)}
+          dark={dark}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardCheck, Flag } from 'lucide-react'
+import { BarChart3, ClipboardCheck, Flag, Gauge } from 'lucide-react'
 
 /**
  * Which slice of claims is on screen.
@@ -18,11 +18,22 @@ type Props = {
   onView: (v: View) => void
   onShowRules: () => void
   reviewCount: number
+  riskCount: number
+  className?: string
+  onNavigate?: () => void
 }
 
-export default function Sidebar({ view, onView, onShowRules, reviewCount }: Props) {
+export default function Sidebar({
+  view,
+  onView,
+  onShowRules,
+  reviewCount,
+  riskCount,
+  className = '',
+  onNavigate,
+}: Props) {
   return (
-    <aside>
+    <aside id="mobile-navigation" className={className}>
       <div className="brand">
         <div className="brand-mark">✓</div>
         <div>
@@ -40,18 +51,25 @@ export default function Sidebar({ view, onView, onShowRules, reviewCount }: Prop
       <nav>
         <NavItem
           active={view === 'all'}
-          onClick={() => onView('all')}
+          onClick={() => { onView('all'); onNavigate?.() }}
           icon={<BarChart3 size={16} />}
           label="Ikhtisar"
         />
         <NavItem
           active={view === 'review'}
-          onClick={() => onView('review')}
+          onClick={() => { onView('review'); onNavigate?.() }}
           icon={<Flag size={16} />}
           label="Perlu ditinjau"
           count={reviewCount}
         />
-        <button onClick={onShowRules} title="Lihat aturan pemeriksaan yang aktif">
+        <NavItem
+          active={view === 'risky'}
+          onClick={() => { onView('risky'); onNavigate?.() }}
+          icon={<Gauge size={16} />}
+          label="Risiko tinggi"
+          count={riskCount}
+        />
+        <button onClick={() => { onShowRules(); onNavigate?.() }} title="Lihat aturan pemeriksaan yang aktif">
           <i>
             <ClipboardCheck size={16} />
           </i>

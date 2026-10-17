@@ -9,6 +9,7 @@ type Props = {
   allowedFor: (diagnosis: string) => string[]
   onCreate: (draft: Omit<Claim, 'id' | 'status' | 'score' | 'flags' | 'history'>) => void
   onClose: () => void
+  dark: boolean
 }
 
 const BLANK = {
@@ -29,9 +30,10 @@ const BLANK = {
  * refusing them would be a lie about the tool's coverage. An unrecognised
  * diagnosis is surfaced as such instead — see the notice below.
  */
-export default function AddClaimModal({ knownDiagnoses, allowedFor, onCreate, onClose }: Props) {
+export default function AddClaimModal({ knownDiagnoses, allowedFor, onCreate, onClose, dark }: Props) {
   const [draft, setDraft] = useState(BLANK)
   const [hasDocuments, setHasDocuments] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
   const set = <K extends keyof typeof BLANK>(key: K, value: (typeof BLANK)[K]) =>
     setDraft((d) => ({ ...d, [key]: value }))
@@ -49,6 +51,7 @@ export default function AddClaimModal({ knownDiagnoses, allowedFor, onCreate, on
     draft.procedure.trim() !== ''
 
   const submit = () => {
+    setSubmitted(true)
     if (!valid) return
     onCreate({
       ...draft,
@@ -59,34 +62,41 @@ export default function AddClaimModal({ knownDiagnoses, allowedFor, onCreate, on
   }
 
   return (
-    <div className="revision-box">
-      <div className="revision-head">
-        <div>
-          <b>Tambah klaim baru</b>
-          <span>Isi draf klaim, lalu pemeriksaan berjalan otomatis.</span>
+    <div className={`modal-backdrop ${dark ? 'theme-dark' : ''}`} role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="revision-box modal-card" role="dialog" aria-modal="true" aria-labelledby="add-claim-title">
+        <div className="revision-head">
+          <div>
+            <b id="add-claim-title">Tambah klaim baru</b>
+            <span>Isi draf klaim, lalu pemeriksaan berjalan otomatis.</span>
+          </div>
+          <button className="icon-button" onClick={onClose} aria-label="Tutup tambah klaim">
+            <X size={16} />
+          </button>
         </div>
-        <button className="icon-button" onClick={onClose} aria-label="Tutup tambah klaim">
-          <X size={16} />
-        </button>
-      </div>
 
       <label>
-        Pasien
+        Pasien <RequiredMark />
         <input
+          aria-invalid={submitted && !draft.patient.trim()}
+          aria-describedby={submitted && !draft.patient.trim() ? 'patient-error' : undefined}
           value={draft.patient}
           onChange={(e) => set('patient', e.target.value)}
           placeholder="Pasien E-517"
         />
+        {submitted && !draft.patient.trim() && <FieldError id="patient-error">Nama pasien wajib diisi.</FieldError>}
       </label>
 
       <label>
-        Diagnosis (ICD-10)
+        Diagnosis (ICD-10) <RequiredMark />
         <input
+          aria-invalid={submitted && !draft.diagnosis.trim()}
+          aria-describedby={submitted && !draft.diagnosis.trim() ? 'diagnosis-error' : undefined}
           value={draft.diagnosis}
           onChange={(e) => set('diagnosis', e.target.value)}
           placeholder="K35.8"
           list="known-diagnoses"
         />
+        {submitted && !draft.diagnosis.trim() && <FieldError id="diagnosis-error">Diagnosis wajib diisi.</FieldError>}
         <datalist id="known-diagnoses">
           {knownDiagnoses.map((d) => (
             <option key={d} value={d} />
@@ -100,13 +110,16 @@ export default function AddClaimModal({ knownDiagnoses, allowedFor, onCreate, on
       </label>
 
       <label>
-        Kode tindakan
+        Kode tindakan <RequiredMark />
         <input
+          aria-invalid={submitted && !draft.procedure.trim()}
+          aria-describedby={submitted && !draft.procedure.trim() ? 'procedure-error' : undefined}
           value={draft.procedure}
           onChange={(e) => set('procedure', e.target.value)}
           placeholder="Contoh: 47.09"
           list="allowed-procedure-codes"
         />
+        {submitted && !draft.procedure.trim() && <FieldError id="procedure-error">Kode tindakan wajib diisi.</FieldError>}
         <datalist id="allowed-procedure-codes">
           {allowed.map((c) => (
             <option key={c} value={c} />
@@ -131,8 +144,15 @@ export default function AddClaimModal({ knownDiagnoses, allowedFor, onCreate, on
       </div>
 
       <label>
-        Total tagihan
-        <input value={draft.amount} onChange={(e) => set('amount', e.target.value)} placeholder="Rp 0" />
+        Total tagihan <RequiredMark />
+        <input
+          aria-invalid={submitted && !draft.amount.trim()}
+          aria-describedby={submitted && !draft.amount.trim() ? 'amount-error' : undefined}
+          value={draft.amount}
+          onChange={(e) => set('amount', e.target.value)}
+          placeholder="Rp 0"
+        />
+        {submitted && !draft.amount.trim() && <FieldError id="amount-error">Total tagihan wajib diisi.</FieldError>}
       </label>
 
       <label className="check-row">
@@ -150,14 +170,23 @@ export default function AddClaimModal({ knownDiagnoses, allowedFor, onCreate, on
         </div>
       )}
 
-      <div className="actions">
+        <div className="actions">
         <button className="ghost" onClick={onClose}>
           Batal
         </button>
-        <button className="primary" onClick={submit} disabled={!valid}>
+        <button className="primary" onClick={submit}>
           Tambahkan klaim
         </button>
-      </div>
+        </div>
+      </section>
     </div>
   )
+}
+
+function RequiredMark() {
+  return <span className="required-mark">· wajib</span>
+}
+
+function FieldError({ id, children }: { id: string; children: string }) {
+  return <small className="field-error" id={id} role="alert">{children}</small>
 }
