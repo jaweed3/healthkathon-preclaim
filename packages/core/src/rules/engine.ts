@@ -12,7 +12,7 @@ export type RuleContext = { claim: Claim; claims: Claim[] };
  * small is what stops "policy-as-code" from quietly becoming a language nobody
  * can review.
  */
-type Evaluator = (rule: Rule, ctx: RuleContext) => Flag[];
+type Evaluator = (rule: Rule, ctx: RuleContext) => Omit<Flag, "reason" | "source" | "evidence">[];
 
 /**
  * Fraction of the compared fields two claims agree on.
