@@ -1,0 +1,40 @@
+meta {
+  name: Analyze synthetic batch
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/claims/batch
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "claims": [
+      {
+        "id": "CLM-DEMO-001",
+        "patient": "Pasien Demo-001",
+        "service": "Rawat inap • Bedah",
+        "date": "18 Okt 2026",
+        "amount": "Rp 18.450.000",
+        "status": "Perlu ditinjau",
+        "score": 0,
+        "readiness": 0,
+        "diagnosis": "K35.8 — Apendisitis akut",
+        "procedure": "99.04 — Transfusi eritrosit",
+        "length": "4 hari",
+        "flags": []
+      }
+    ]
+  }
+}
+
+tests {
+  test("returns analyzed claims and count", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.count).to.equal(1);
+    expect(res.body.claims[0].id).to.equal("CLM-DEMO-001");
+  });
+}
