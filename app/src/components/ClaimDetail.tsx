@@ -27,11 +27,14 @@ type Props = {
 
 /** Why a rule fired, in the coder's language rather than the engine's. */
 const RULE_BLURB: Record<string, string> = {
-  'dx-procedure': 'Kode tindakan ini tidak ada dalam daftar kode yang lazim untuk diagnosis tersebut. Ini indikator untuk verifikasi klinis, bukan bukti atau vonis upcoding.',
+  'dx-procedure':
+    'Kode tindakan ini tidak ada dalam daftar kode yang lazim untuk diagnosis tersebut. Ini indikator untuk verifikasi klinis, bukan bukti atau vonis upcoding.',
   'length-of-stay': 'Lama rawat lebih panjang dari pola yang biasa untuk diagnosis ini di fasilitas.',
   'missing-evidence': 'Tindakan berisiko tinggi ini dikirim tanpa dokumen pendukung yang tercatat.',
   similarity:
     'Diagnosis, tindakan, dan lama rawat mirip dengan klaim lain. Kemiripan adalah sinyal untuk memeriksa kemungkinan copy-paste atau klaim tertukar, bukan bukti.',
+  'local-anomaly':
+    'Nilai ini menyimpang dari klaim sintetis sejenis yang tersedia. Indikator statistik ini bukan bukti kesalahan atau fraud, dan hanya muncul bila jumlah pembanding mencukupi.',
 }
 
 const DEMO_CASE: Record<string, string> = {
@@ -72,7 +75,10 @@ export default function ClaimDetail(props: Props) {
         </div>
         <div className="readiness-card">
           <span>KESIAPAN</span>
-          <b>{claim.readiness}<small>/100</small></b>
+          <b>
+            {claim.readiness}
+            <small>/100</small>
+          </b>
         </div>
       </div>
 
@@ -95,9 +101,14 @@ export default function ClaimDetail(props: Props) {
               <div className="flag-icon">{f.severity === 'warn' ? '!' : 'i'}</div>
               <div>
                 {DEMO_CASE[f.ruleId] && <span className="demo-case">{DEMO_CASE[f.ruleId]}</span>}
-                  <b>{f.message}</b>
-                  <p>{RULE_BLURB[f.ruleId] ?? 'Ditemukan oleh pemeriksaan otomatis.'}</p>
-                  <small>Alasan: {f.reason} · Sumber: {f.source} · Evidence: {f.evidence.join('; ')}</small>
+                <b>{f.message}</b>
+                <p>{RULE_BLURB[f.ruleId] ?? 'Ditemukan oleh pemeriksaan otomatis.'}</p>
+                <small>
+                  Alasan: {f.reason} · Sumber: {f.source} · Evidence: {f.evidence.join('; ')}
+                  {typeof f.deviationScore === 'number'
+                    ? ` · Penyimpangan: ${f.deviationScore.toFixed(1)} simpangan baku`
+                    : ''}
+                </small>
               </div>
             </div>
           ))}
@@ -148,13 +159,23 @@ export default function ClaimDetail(props: Props) {
               value={props.note}
               onChange={(e) => props.onNote(e.target.value)}
               placeholder="Tulis dasar keputusan, mis. hasil verifikasi resume medis."
-              aria-invalid={props.notice === 'Tulis alasan persetujuan sebelum melanjutkan.' && !props.note.trim()}
-              aria-describedby={props.notice === 'Tulis alasan persetujuan sebelum melanjutkan.' ? 'coder-note-error' : 'coder-note-help'}
+              aria-invalid={
+                props.notice === 'Tulis alasan persetujuan sebelum melanjutkan.' && !props.note.trim()
+              }
+              aria-describedby={
+                props.notice === 'Tulis alasan persetujuan sebelum melanjutkan.'
+                  ? 'coder-note-error'
+                  : 'coder-note-help'
+              }
             />
             {props.notice === 'Tulis alasan persetujuan sebelum melanjutkan.' ? (
-              <span className="field-error" id="coder-note-error" role="alert">Catatan koder wajib diisi sebelum menyetujui.</span>
+              <span className="field-error" id="coder-note-error" role="alert">
+                Catatan koder wajib diisi sebelum menyetujui.
+              </span>
             ) : (
-              <span className="field-help" id="coder-note-help">Dicatat di riwayat bila klaim disetujui dengan temuan aktif.</span>
+              <span className="field-help" id="coder-note-help">
+                Dicatat di riwayat bila klaim disetujui dengan temuan aktif.
+              </span>
             )}
           </div>
 
