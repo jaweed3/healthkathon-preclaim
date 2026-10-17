@@ -8,6 +8,10 @@ export {
   ClaimStatusSchema,
   ClaimStoreSchema,
   ClaimsResponseSchema,
+  AnalyzeRequestSchema,
+  AnalyzeResponseSchema,
+  BatchClaimsRequestSchema,
+  ExportClaimsRequestSchema,
   FlagSchema,
   HealthResponseSchema,
   RevisionSchema,
@@ -34,6 +38,7 @@ export {
 } from "./scoring";
 export {
   EVALUATOR_TYPES,
+  RuleBasisSchema,
   INSPECTION_RULES,
   POLICY,
   allowedCodes,
@@ -48,14 +53,17 @@ export {
   ruleByType,
   type EvaluatorType,
   type Rule,
+  type RuleBasis,
   type RuleContext,
   type RuleSet,
 } from "./rules";
 export { seed, rawSeed } from "./seed";
 export {
   generate,
+  hardCaseSuite,
   runRules,
   type Generated,
+  type HardCase,
   type GeneratorOptions,
 } from "./generator";
 export {
