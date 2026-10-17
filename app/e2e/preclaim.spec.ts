@@ -1,5 +1,20 @@
 import { test, expect } from '@playwright/test';
 
+const openRevision = async (page) => {
+  await page.getByRole('button', { name: '↺ Revisi kode' }).click();
+  await expect(page.locator('.revision-box')).toBeVisible();
+};
+
+const fillRevision = async (page, { code, reason }) => {
+  if (code) await page.locator('.revision-box input:not([type="checkbox"])').fill(code);
+  await page.locator('.revision-box textarea').fill(reason);
+  await page.locator('.revision-box input[type="checkbox"]').check();
+  await page.getByRole('button', { name: 'Konfirmasi revisi' }).click();
+};
+
+const auditLog = (page) =>
+  page.evaluate(() => JSON.parse(localStorage.getItem('preclaim-audit-log') ?? '[]'));
+
 test.describe('PreClaim Guard — alur koder sebelum submit', () => {
   test('menemukan klaim berisiko dan menjelaskan temuan', async ({ page }) => {
     await page.goto('/');
@@ -12,9 +27,10 @@ test.describe('PreClaim Guard — alur koder sebelum submit', () => {
 
   test('merevisi kode lalu menurunkan risiko sebelum submit', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: '↺ Revisi kode' }).click();
+    await openRevision(page);
+    await fillRevision(page, { reason: 'Resume medis mendukung apendektomi.' });
     await expect(page.getByText('Kode tindakan diperbarui. Risiko turun dan klaim siap dikirim.')).toBeVisible();
-    await expect(page.getByText('12/100')).toBeVisible();
+    await expect(page.locator('.detail .score-card').getByText('18/100')).toBeVisible();
     await expect(page.getByText('Tidak ada peringatan aktif')).toBeVisible();
   });
 
@@ -25,5 +41,55 @@ test.describe('PreClaim Guard — alur koder sebelum submit', () => {
     await expect(page.getByText('Klaim disetujui dengan catatan koder.')).toBeVisible();
     await expect(page.locator('.detail-top .status.done')).toHaveText('Disetujui');
     await expect(page.getByText('Asisten, bukan hakim.')).toBeVisible();
+  });
+});
+
+test.describe('PreClaim Guard — revisi harus dapat diaudit', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+  });
+
+  test('menyimpan alasan dan bukti pennyaman ke jejak audit', async ({ page }) => {
+    await openRevision(page);
+    await fillRevision(page, { reason: 'Resume medis mendukung apendektomi.' });
+
+    const log = await auditLog(page);
+    expect(log).toHaveLength(1);
+    expect(log[0].claimId).toBe('CLM-240918-021');
+    expect(log[0].revisions.at(-1)).toMatchObject({
+      from: '47.09 — Apendektomi lainnya',
+      to: '47.09',
+      reason: 'Resume medis mendukung apendektomi.',
+      evidence: true,
+      previousScore: 78,
+      newScore: 18,
+    });
+  });
+
+  test('jejak audit bertahan setelah muat ulang halaman', async ({ page }) => {
+    await openRevision(page);
+    await fillRevision(page, { reason: 'Resume medis mendukung apendektomi.' });
+    await page.reload();
+    expect(await auditLog(page)).toHaveLength(1);
+  });
+
+  test('menolak kode yang tidak sesuai diagnosis alih-alih menurunkan risiko', async ({ page }) => {
+    await openRevision(page);
+    // 99.04 (transfusi) is plausible for A09, not for K35.8 appendicitis.
+    await fillRevision(page, { code: '99.04', reason: 'Kode salah/input tidak sengaja.' });
+
+    await expect(page.getByText(/Kode diperbarui, tetapi kombinasi diagnosis.*tetap berisiko/)).toBeVisible();
+    await expect(page.locator('.detail .score-card').getByText('82/100')).toBeVisible();
+    // The claim must still be held for review — a wrong code must not green it.
+    await expect(page.locator('.detail-top .status')).not.toHaveClass(/done/);
+  });
+
+  test('tidak mengonfirmasi revisi tanpa alasan dan bukti', async ({ page }) => {
+    await openRevision(page);
+    await page.locator('.revision-box input:not([type="checkbox"])').fill('47.11');
+    await page.getByRole('button', { name: 'Konfirmasi revisi' }).click();
+    await expect(page.getByText('Lengkapi kode koreksi, alasan, dan evidence sebelum mengonfirmasi revisi.')).toBeVisible();
+    expect(await auditLog(page)).toHaveLength(0);
   });
 });
