@@ -27,6 +27,9 @@ export type Generated = {
   injected: string[];
 };
 
+/** Explicit edge cases, independent from the randomized synthetic corpus. */
+export type HardCase = { name: string; claim: Claim; expectedRuleIds: string[] };
+
 export type GeneratorOptions = {
   count: number;
   seed?: number;
@@ -299,4 +302,14 @@ export function runRules(
     expected: g.expected,
     actual: evaluateRules({ claim: g.claim, claims: context }),
   }));
+}
+
+export function hardCaseSuite(): HardCase[] {
+  const base = generate({ count: 1, seed: 901 })[0].claim;
+  return [
+    { name: "unknown diagnosis is advisory, not a false pass", claim: { ...base, id: "HC-UNKNOWN", diagnosis: "Z99.9 — kode tidak ada di tabel demo", procedure: "47.09" }, expectedRuleIds: ["dx-procedure"] },
+    { name: "symptom diagnosis without confirmed diagnosis remains valid", claim: { ...base, id: "HC-SYMPTOM", diagnosis: "R50.9 — Demam", procedure: "93.90", establishedDiagnoses: undefined }, expectedRuleIds: ["dx-procedure"] },
+    { name: "symptom with definitive diagnosis is reviewed", claim: { ...base, id: "HC-SYMPTOM-CONFIRMED", diagnosis: "R50.9 — Demam", establishedDiagnoses: ["J18.9"] }, expectedRuleIds: ["dx-procedure", "icd10-ch18-primary"] },
+    { name: "exact duplicate with a separate identity is similar", claim: { ...base, id: "HC-DUPLICATE" }, expectedRuleIds: ["similarity"] },
+  ];
 }
