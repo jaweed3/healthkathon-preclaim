@@ -131,6 +131,9 @@ describe("ClaimSchema", () => {
         {
           ruleId: "similarity",
           message: "Kemiripan tinggi",
+          reason: "Kemiripan tinggi",
+          source: "fixture",
+          evidence: ["CLM-1", "CLM-2"],
           severity: "warn" as const,
         },
       ],
