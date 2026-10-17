@@ -17,8 +17,8 @@ import {
   type Claim,
 } from '@preclaim/core'
 import AddClaimModal from './components/AddClaimModal'
+import ClaimDetailDrawer from './components/ClaimDetailDrawer'
 import OnboardingModal from './components/OnboardingModal'
-import ClaimDetail from './components/ClaimDetail'
 import ClaimList from './components/ClaimList'
 import Header from './components/Header'
 import RulesPanel from './components/RulesPanel'
@@ -86,6 +86,7 @@ export default function App() {
   const [rulesOpen, setRulesOpen] = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(() => readString(ONBOARDING_KEY) !== 'true')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [newCode, setNewCode] = useState('')
   const [reason, setReason] = useState('')
   const [evidence, setEvidence] = useState(false)
@@ -122,6 +123,7 @@ export default function App() {
 
   const select = (c: Claim) => {
     setSelectedId(c.id)
+    setDetailOpen(true)
     setNotice('')
   }
 
@@ -274,6 +276,7 @@ export default function App() {
     // claims' findings too.
     setClaims((cs) => evaluateAll([claim, ...cs]))
     setSelectedId(claim.id)
+    setDetailOpen(true)
     setAddOpen(false)
     setView('all')
     setNotice(
@@ -356,8 +359,9 @@ export default function App() {
             atRisk={atRisk}
           />
 
-          {selected && (
-            <ClaimDetail
+          {selected && detailOpen && (
+            <ClaimDetailDrawer
+              onClose={() => setDetailOpen(false)}
               claim={selected}
               history={history}
               notice={notice}
