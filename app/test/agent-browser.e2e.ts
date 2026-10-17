@@ -31,7 +31,11 @@ function count(selector: string): number {
 }
 
 function countText(selector: string, value: string): number {
-  return Number(evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(selector)})).filter((el) => el.textContent?.includes(${JSON.stringify(value)})).length`))
+  return Number(
+    evaluate(
+      `Array.from(document.querySelectorAll(${JSON.stringify(selector)})).filter((el) => el.textContent?.includes(${JSON.stringify(value)})).length`,
+    ),
+  )
 }
 
 function click(selector: string): void {
@@ -45,7 +49,9 @@ function fill(selector: string, value: string): void {
 async function cleanApp(): Promise<void> {
   browser('open', baseUrl)
   browser('wait', '--load', 'domcontentloaded')
-  evaluate('localStorage.clear(); location.reload()')
+  evaluate(
+    'localStorage.clear(); localStorage.setItem("preclaim-onboarding-seen", "true"); location.reload()',
+  )
   browser('wait', '--text', 'Ikhtisar klaim')
 }
 
@@ -77,6 +83,20 @@ afterAll(() => {
 })
 
 describe('PreClaim Guard via agent-browser', () => {
+  test('introduces the workflow and can reopen the guide', async () => {
+    browser('open', baseUrl)
+    browser('wait', '--load', 'domcontentloaded')
+    evaluate('localStorage.clear(); location.reload()')
+    browser('wait', '--text', 'Selamat datang di PreClaim Guard')
+    expect(text('[role="dialog"]')).toContain('data sintetis')
+    click('.onboarding-next')
+    expect(text('[role="dialog"]')).toContain('Mulai dari antrean klaim')
+    click('.onboarding-close')
+    expect(count('[role="dialog"]')).toBe(0)
+    click('button[aria-label="Buka panduan pengguna"]')
+    expect(text('[role="dialog"]')).toContain('Selamat datang di PreClaim Guard')
+  })
+
   test('loads the synthetic claim overview', async () => {
     await cleanApp()
     expect(text('.stats')).toContain('5')
