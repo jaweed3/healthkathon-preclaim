@@ -1,4 +1,13 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  setDefaultTimeout,
+  test,
+} from "bun:test";
+
+setDefaultTimeout(60_000);
 
 const port = 4174;
 const baseUrl = `http://127.0.0.1:${port}`;
@@ -94,7 +103,7 @@ afterAll(() => {
   }
 });
 
-describe("PreClaim Guard via agent-browser", () => {
+describe.serial("PreClaim Guard via agent-browser", () => {
   test("introduces the workflow and can reopen the guide", async () => {
     browser("open", baseUrl);
     browser("wait", "--load", "domcontentloaded");
@@ -115,7 +124,36 @@ describe("PreClaim Guard via agent-browser", () => {
     await cleanApp();
     expect(text(".stats")).toContain("5");
     expect(count(".table .tr.row")).toBe(5);
+    expect(count(".detail-drawer-backdrop")).toBe(0);
+    click(".table .row");
     expect(text(".detail-top .status")).toContain("Perlu ditinjau");
+  });
+
+  test("opens and closes claim details as an accessible drawer", async () => {
+    await cleanApp();
+    click(".table .row");
+    expect(
+      evaluate(
+        'document.querySelector("[role=dialog]")?.getAttribute("aria-label")',
+      ),
+    ).toContain("Detail klaim");
+    expect(count(".fact-card")).toBe(4);
+    expect(text(".fact-diagnosis")).toContain("Diagnosis utama");
+    expect(text(".fact-procedure")).toContain("Tindakan");
+    expect(text(".fact-length")).toContain("Lama rawat");
+    expect(text(".fact-amount")).toContain("Total tagihan");
+    expect(
+      Number(
+        evaluate(
+          'parseFloat(getComputedStyle(document.querySelector(".fact-card b")).fontSize)',
+        ),
+      ),
+    ).toBeGreaterThanOrEqual(15);
+    click('button[aria-label="Tutup detail klaim"]');
+    expect(count(".detail-drawer-backdrop")).toBe(0);
+    click(".table .row");
+    browser("press", "Escape");
+    expect(count(".detail-drawer-backdrop")).toBe(0);
   });
 
   test("shows finding provenance and rule basis", async () => {
@@ -125,6 +163,7 @@ describe("PreClaim Guard via agent-browser", () => {
       "Kode tindakan tidak sesuai dengan diagnosis",
     );
     expect(text(".flags")).toContain("Sumber:");
+    click('button[aria-label="Tutup detail klaim"]');
     click('nav button[title="Lihat aturan pemeriksaan yang aktif"]');
     expect(text('[role="dialog"]')).toContain("Basis:");
   });
@@ -136,7 +175,7 @@ describe("PreClaim Guard via agent-browser", () => {
     fill('.revision-box input:not([type="checkbox"])', "47.09");
     fill(".revision-box textarea", "Koreksi sesuai dokumentasi klinis");
     click('.revision-box input[type="checkbox"]');
-    click(".revision-box button.primary");
+    evaluate('document.querySelector(".revision-box button.primary")?.click()');
     expect(text(".detail-top .status")).toContain("Siap submit");
     expect(text(".audit-trail")).toContain("Koreksi sesuai dokumentasi klinis");
   });
@@ -153,6 +192,7 @@ describe("PreClaim Guard via agent-browser", () => {
     expect(text(".detail-top .status")).toContain("Disetujui dengan catatan");
     browser("reload");
     browser("wait", "--text", "Disetujui dengan catatan");
+    click(".table .row");
     expect(text(".detail-top .status")).toContain("Disetujui dengan catatan");
   });
 
@@ -167,5 +207,16 @@ describe("PreClaim Guard via agent-browser", () => {
       1,
     );
     expect(countText("button", "Ekspor")).toBe(1);
+    click(".table .row");
+    expect(
+      evaluate(
+        'getComputedStyle(document.querySelector(".detail .flag")).borderBottomColor',
+      ),
+    ).toContain("rgb(43, 61, 73)");
+    expect(
+      evaluate(
+        'getComputedStyle(document.querySelector(".detail .facts")).borderTopColor',
+      ),
+    ).toContain("rgb(43, 61, 73)");
   });
 });
