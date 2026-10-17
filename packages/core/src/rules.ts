@@ -5,8 +5,8 @@ import { POLICY } from "./rules/policy";
 import { readinessFor, scoreFor, statusFor } from "./scoring";
 
 export { POLICY };
-export type { Rule, RuleSet, EvaluatorType } from "./rules/schema";
-export { EVALUATOR_TYPES } from "./rules/schema";
+export type { Rule, RuleSet, EvaluatorType, RuleBasis } from "./rules/schema";
+export { EVALUATOR_TYPES, RuleBasisSchema } from "./rules/schema";
 export { ruleById, ruleByType } from "./rules/policy";
 export type { RuleContext } from "./rules/engine";
 
@@ -21,9 +21,13 @@ export function evaluateRules({
   claim: Claim;
   claims: Claim[];
 }): Flag[] {
-  return POLICY.rules.flatMap((rule) =>
-    RULE_EVALUATORS[rule.type](rule, { claim, claims }),
-  );
+  return POLICY.rules.flatMap((rule) => RULE_EVALUATORS[rule.type](rule, { claim, claims })
+    .map((flag) => {
+      const evidence = rule.type === "similarity"
+        ? [claim.id, ...claims.filter((candidate) => candidate.id !== claim.id && flag.message.includes(candidate.id)).map((candidate) => candidate.id)]
+        : ["Diagnosis: " + claim.diagnosis, "Tindakan: " + claim.procedure, "Lama rawat: " + claim.length, "Dokumen tercatat: " + ((claim.documents ?? []).join(", ") || "tidak ada")];
+      return { ...flag, reason: rule.description, source: rule.source, evidence };
+    }));
 }
 
 /**
@@ -57,7 +61,7 @@ export function recomputeRule(claims: Claim[], ruleId: string): Claim[] {
   if (!rule) return claims;
 
   const next = claims.map((claim) => {
-    const fresh = RULE_EVALUATORS[rule.type](rule, { claim, claims });
+    const fresh = evaluateRules({ claim, claims }).filter((flag) => flag.ruleId === ruleId);
     return { ...claim, flags: replaceFlagsForRule(claim.flags, ruleId, fresh) };
   });
 
