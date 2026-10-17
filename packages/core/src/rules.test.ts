@@ -264,11 +264,17 @@ describe("replaceFlagsForRule", () => {
   const dxFlag: Flag = {
     ruleId: "dx-procedure",
     message: "dx",
+    reason: "dx",
+    source: "test",
+    evidence: ["fixture"],
     severity: "warn",
   };
   const simFlag: Flag = {
     ruleId: "similarity",
     message: "sim",
+    reason: "sim",
+    source: "test",
+    evidence: ["fixture"],
     severity: "warn",
   };
 
