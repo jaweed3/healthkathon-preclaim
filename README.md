@@ -22,6 +22,20 @@ npm run dev
 
 Open `http://127.0.0.1:5173/`.
 
+## Worker API
+
+The beta claim API deploys independently of the prototype, which runs fully
+local-first and does not call it.
+
+```bash
+cd worker
+npm install
+npm run typecheck
+npm run dev      # or: npm run deploy
+```
+
+`GET /health` and `GET /api/claims` return synthetic data only.
+
 ## Validate
 
 ```bash
