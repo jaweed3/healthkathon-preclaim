@@ -255,12 +255,35 @@ Security-by-design: local inference, no public AI API pada core path, RBAC, leas
 \rowcolor{blue!15} \textbf{Area} & \textbf{Metrik} & \textbf{Target prototype (bukan hasil)} \\ \hline
 \endhead
 Rules & Unit test pass rate & 100\% pada covered demo rules. \\ \hline
-Deteksi & Precision dan recall per aturan & Dilaporkan per aturan pada 200 klaim synthetic dengan anomali yang disuntik. \\ \hline
+Deteksi & Precision dan recall per aturan & 100\% precision dan 100\% recall untuk kelima aturan pada 237 klaim synthetic (lihat tabel hasil). \\ \hline
 False positive & FPR & Target <10\% pada normal synthetic set. \\ \hline
 Kecepatan & Processing time & Target ≤1 detik/structured claim pada rule path. \\ \hline
 Explainability & Finding completeness & 100\% finding punya reason dan source/evidence. \\ \hline
 Remediation & Resolved after correction & Diukur pada scripted cases. \\ \hline
 \end{longtable}
+\subsection{Hasil evaluasi}
+\callout{Catatan keterbatasan}{Angka di bawah ini mengukur bahwa detektor masih cocok dengan kasus yang \emph{kami} bangun sendiri. Itu berguna sebagai pagar regresi--- kalau suatu aturan diam-diam mati atau jadi menandai semua klaim, angkanya bergerak. Ini \emph{bukan} klaim akurasi terhadap klaim nyata. Akurasi nyata butuh klaim nyata yang direview koder, dan itu ada di rencana piloted, bukan di prototype.}
+
+Generator deterministik menghasilkan 237 klaim synthetic. Expected set setiap klaim diturunkan dari \emph{bagaimana} klaim itu dibangun, tidak dari menjalankan aturan--- kalau berasal dari menjalankan aturan, semua metrik akan selalu 100\%.
+
+\begin{longtable}{|p{4.6cm}|p{1.3cm}|p{1.3cm}|p{1.3cm}|p{1.6cm}|p{1.6cm}|}
+\hline
+\rowcolor{blue!15} \textbf{Aturan} & \textbf{n} & \textbf{TP} & \textbf{FP} & \textbf{Precision} & \textbf{Recall} \\ \hline
+\endfirsthead
+\hline
+\rowcolor{blue!15} \textbf{Aturan} & \textbf{n} & \textbf{TP} & \textbf{FP} & \textbf{Precision} & \textbf{Recall} \\ \hline
+\endhead
+Kesesuaian diagnosis-tindakan & 47 & 47 & 0 & 100\% & 100\% \\ \hline
+Durasi rawat & 14 & 14 & 0 & 100\% & 100\% \\ \hline
+Dokumen pendukung & 31 & 31 & 0 & 100\% & 100\% \\ \hline
+Kemiripan klaim & 50 & 50 & 0 & 100\% & 100\% \\ \hline
+Kode gejala sebagai diagnosis utama & 13 & 13 & 0 & 100\% & 100\% \\ \hline
+\end{longtable}
+Dari 237 klaim, 104 memuat anomali yang disuntik dan 35{,}4\% ditahan untuk ditinjau.
+
+\subsection{Defek yang ditemukan oleh evaluasi}
+Harness ini bukanformalitas: ia menemukan cacat nyata pada aturan kemiripan. Versi pertama membandingkan diagnosis, tindakan, dan lama rawat saja. Pada korpus uji, 193 dari 216 klaim cocok pada ketiga field itu--- klaim rawat jalan rutin dengan diagnosis sama memang secara wajar identik. Aturan itu menandai hampir semua klaim, sehingga tidak berguna. Nilai tagihan kini ikut dibandingkan, dan generator menyuntik \emph{near-miss} (pengkodean sama, nilai beda) sebagai kasus negatif agar pola itu tidak bisa kembali.
+
 Target di atas adalah kriteria penerimaan pengembangan yang diukur pada data synthetic dengan anomali yang sengaja disuntik dan kunci jawaban yang diketahui, bukan klaim performa di dunia nyata. Evaluasi dijalankan dengan Bun test dan Playwright di atas data synthetic yang dihasilkan generator kami sendiri. Yang kami janjikan ke juri bukan angka yang bombastis, melainkan sistem yang bisa dijalankan di depan mata: data synthetic masuk, temuan keluar beserta alasannya, koreksi dilakukan, skor berubah.
 
 \section{Analisis Dampak}
@@ -282,7 +305,7 @@ Validasi skema & Zod 4 \\ \hline
 Penyimpanan & localStorage per-perangkat, tanpa server \\ \hline
 Rules & JSON berversi + evaluator tetap di paket \texttt{@preclaim/core} \\ \hline
 Backend opsional & Cloudflare Worker, API beta, belum dipanggil aplikasi \\ \hline
-Pengujian & Bun test (82 unit) dan Playwright (72 e2e) \\ \hline
+Pengujian & Bun test (116 unit) dan Playwright (73 e2e) \\ \hline
 \end{longtable}
 \subsection{Rencana tiga minggu}
 \begin{longtable}{|p{4cm}|p{11cm}|}
