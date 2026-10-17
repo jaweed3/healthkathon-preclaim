@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import type { Claim } from '../types'
+import type { Claim } from '@preclaim/core'
 
 type Props = {
   claim: Claim

@@ -1,4 +1,4 @@
-import type { Claim, Revision } from './types'
+import type { Claim, Revision } from '@preclaim/core'
 
 const KEY = 'preclaim-audit-log'
 const MAX_ENTRIES = 500

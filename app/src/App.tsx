@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react'
+import { CLAIM_STATUS, codeOf, flagsFor, scoreClaim, seed, statusFor, type Claim } from '@preclaim/core'
 import { appendAudit } from './audit'
 import ClaimDetail from './components/ClaimDetail'
 import ClaimList from './components/ClaimList'
 import Header from './components/Header'
 import Sidebar, { type View } from './components/Sidebar'
 import StatsBar from './components/StatsBar'
-import { seed } from './data'
-import { codeOf, flagsFor, scoreClaim, statusFor } from './scoring'
-import type { Claim } from './types'
 
 const THEME_KEY = 'preclaim-theme'
 
@@ -25,7 +23,7 @@ export default function App() {
   const [evidence, setEvidence] = useState(false)
 
   const shown = useMemo(
-    () => (view === 'review' ? claims.filter((c) => c.status === 'Perlu ditinjau') : claims),
+    () => (view === 'review' ? claims.filter((c) => c.status === CLAIM_STATUS.review) : claims),
     [claims, view],
   )
 
@@ -84,7 +82,7 @@ export default function App() {
   }
 
   const approve = () => {
-    const updated: Claim = { ...selected, status: 'Disetujui' }
+    const updated: Claim = { ...selected, status: CLAIM_STATUS.approved }
     setClaims((cs) => cs.map((c) => (c.id === updated.id ? updated : c)))
     setSelected(updated)
     setNotice('Klaim disetujui dengan catatan koder.')
@@ -111,7 +109,7 @@ export default function App() {
       <Sidebar
         view={view}
         onView={setView}
-        reviewCount={claims.filter((c) => c.status === 'Perlu ditinjau').length}
+        reviewCount={claims.filter((c) => c.status === CLAIM_STATUS.review).length}
         totalCount={claims.length}
       />
 

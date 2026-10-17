@@ -1,7 +1,7 @@
-import type { ClaimStatus } from '../types'
+import { CLAIM_STATUS, type ClaimStatus } from '@preclaim/core'
 
 const statusClass = (status: ClaimStatus) =>
-  status === 'Perlu ditinjau' ? 'warn' : status === 'Disetujui' ? 'done' : 'ready'
+  status === CLAIM_STATUS.review ? 'warn' : status === CLAIM_STATUS.approved ? 'done' : 'ready'
 
 export default function StatusBadge({ status }: { status: ClaimStatus }) {
   return <label className={`status ${statusClass(status)}`}>{status}</label>

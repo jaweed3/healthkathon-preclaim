@@ -1,0 +1,26 @@
+{
+  "name": "preclaim-guard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "PreClaim Guard — Healthkathon 2026. Detect before submit. Explain before reject.",
+  "packageManager": "bun@1.3.14",
+  "workspaces": [
+    "packages/*",
+    "app",
+    "worker",
+    "deck"
+  ],
+  "scripts": {
+    "dev": "bun run --cwd app dev",
+    "build": "bun run --cwd app build && bun run --cwd deck build",
+    "test": "bun run --cwd packages/core test && bun run --cwd app test",
+    "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd worker typecheck",
+    "worker:dev": "bun run --cwd worker dev",
+    "worker:deploy": "bun run --cwd worker deploy",
+    "deck:build": "bun run --cwd deck build",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
+}

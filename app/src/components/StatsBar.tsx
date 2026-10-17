@@ -1,11 +1,12 @@
-import { averageScore } from '../scoring'
-import type { Claim } from '../types'
+import { CLAIM_STATUS, averageScore, type Claim } from '@preclaim/core'
 
 type Props = { claims: Claim[] }
 
 export default function StatsBar({ claims }: Props) {
-  const review = claims.filter((c) => c.status === 'Perlu ditinjau').length
-  const ready = claims.filter((c) => c.status === 'Siap submit' || c.status === 'Disetujui').length
+  const review = claims.filter((c) => c.status === CLAIM_STATUS.review).length
+  const ready = claims.filter(
+    (c) => c.status === CLAIM_STATUS.ready || c.status === CLAIM_STATUS.approved,
+  ).length
 
   return (
     <section className="stats">

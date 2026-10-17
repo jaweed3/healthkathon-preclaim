@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react'
-import { scoreTone } from '../scoring'
-import type { Claim } from '../types'
+import { CLAIM_STATUS, scoreTone } from '@preclaim/core'
+import type { Claim } from '@preclaim/core'
 import StatusBadge from './StatusBadge'
 
 type Props = {

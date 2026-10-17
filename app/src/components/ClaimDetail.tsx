@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react'
-import { scoreTone } from '../scoring'
-import type { Claim } from '../types'
+import { CLAIM_STATUS, scoreTone, type Claim } from '@preclaim/core'
 import RevisionModal from './RevisionModal'
 import StatusBadge from './StatusBadge'
 
@@ -105,7 +104,7 @@ export default function ClaimDetail(props: Props) {
 
       {props.notice && <div className="notice">✓ {props.notice}</div>}
 
-      {claim.status === 'Perlu ditinjau' && (
+      {claim.status === CLAIM_STATUS.review && (
         <>
           <textarea
             value={props.note}
