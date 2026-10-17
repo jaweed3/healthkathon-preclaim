@@ -17,79 +17,44 @@ menggunakan **data sintetis saja**.
 bun install && bun run dev     # http://127.0.0.1:5173
 ```
 
-## Commands
-
-|                             |                                                                            |
-| --------------------------- | -------------------------------------------------------------------------- |
-| `bun run dev`               | app on :5173                                                               |
-| `bun run test`              | Core + app + Worker contract + agent-browser e2e                           |
-| `bun run typecheck`         | core + worker                                                              |
-| `bun run evaluate`          | per-rule precision/recall, normal-set FPR, and runtime on synthetic claims |
-| `bun run build`             | app + deck                                                                 |
-| `bun run worker:dev`        | beta API (not called by the app)                                           |
-| `docker compose up --build` | static app demo on http://localhost:4173                                   |
-
-## Layout
-
-```
-packages/core/   domain: rules.json policy, evaluators, scoring, Zod schemas
-app/             React + Vite prototype
-worker/          Cloudflare Worker, beta API
-deck/            pitch deck
-tests/           all unit, contract, and browser e2e tests in one place
-docs/            symlinks to proposal and deck artifacts
-```
-
-Both the app and the worker import the claim vocabulary from `@preclaim/core`,
-so a status string cannot drift between them.
-
 ## What it does
 
-Six executable rules, each with `id`, `version`, `source` and `severity` in
-`packages/core/rules.json`: diagnosis↔procedure plausibility, length-of-stay
-threshold, missing supporting documents, claim-to-claim similarity, and an
-explainable local-anomaly baseline. A fifth rule follows ICD-10-CM guideline
-I.C.18.a–b. The anomaly baseline compares length of stay and claim amount against
-a sufficiently large same-service, same-diagnosis cohort. It is a transparent
-statistical heuristic, not trained ML, a clinical standard, or a fraud
-probability; deviation magnitude is shown in standard deviations, not as model
-confidence. The rules panel
-shows each rule with its source; a coder can read a finding and disagree with it.
+- **Review before submission:** diagnosis–procedure plausibility, LOS threshold,
+  supporting-document checks, claim similarity, local cohort anomaly, and an
+  ICD-10-CM I.C.18.a–b check. Rule IDs, versions, sources, severities, and
+  explanations are inspectable in the app.
+- **Explainable findings:** each finding records its rule and evidence. A code
+  revision reruns the affected check without silently dropping unrelated
+  findings; risk and readiness are derived from the current findings.
+- **Auditable decisions:** approval requires a coder note, and the decision trail
+  records the findings present at approval.
+- **Local-first demo:** browser claims stay in localStorage. The separate beta
+  Worker API is not called by the app and accepts synthetic/demo data only.
 
-Findings carry the rule that produced them. Correcting a procedure re-runs
-only the diagnosis rule, so an unrelated finding — a similarity warning, say —
-survives instead of being quietly deleted. The risk score is derived from the
-findings, so the number on screen and the warnings beside it cannot disagree.
+The local-anomaly check is a transparent cohort heuristic—not trained ML, a
+clinical standard, or a fraud probability. Both app and Worker share claim
+schemas from `@preclaim/core`.
 
-Every decision is recorded. Approving a claim requires a written note and
-stores the findings it overrode; the trail survives a reload.
+## Development
 
-## Beta API
+| Command | Purpose |
+| --- | --- |
+| `bun install && bun run dev` | Run app at `http://127.0.0.1:5173` |
+| `bun run test` | Core, Worker, app, and browser tests |
+| `bun run typecheck` | Typecheck core and Worker |
+| `bun run evaluate` | Evaluate rules on synthetic claims |
+| `bun run build` | Build app and pitch deck |
+| `bun run worker:dev` | Run the separate beta API locally |
 
-The Cloudflare Worker exposes validated synthetic-only endpoints:
+## Project map
 
-- `POST /api/v1/claims/analyze` — analyze one claim, optionally against peer claims.
-- `POST /api/v1/claims/batch` — validate and analyze 1–500 claims.
-- `POST /api/v1/claims/export` — export validated claims as JSON.
-- `GET /api/claims` and `GET /health` — beta listing and health check.
+`packages/core/` contains shared schemas and rules; `app/` is the React/Vite
+prototype; `worker/` is the separate Cloudflare beta API; `tests/` centralizes
+unit, contract, and browser tests; and `docs/` contains supporting references
+and the Bruno API collection.
 
-The app remains localStorage-only and does not call the Worker. It supports
-validated JSON import/export in the browser. Do not send real patient data to
-the beta API. Handler, HTTP response helpers, and domain schemas are kept in
-separate modules.
+## References
 
-## Honest limits
-
-`bun run evaluate` reports per-rule precision and recall, false-positive rate on
-the generated normal subset, and evaluator elapsed time. The current fixed seed
-produces 237 claims, 133 normal claims, 0% normal-set FPR, and a sub-second
-evaluation on this development machine. These are reproducible synthetic
-regression measurements, not a production latency guarantee. It also reports
-100% precision and recall per rule. That measures
-whether the detector still agrees with cases **we** generated — a regression
-guard, not real-world accuracy. Real accuracy needs real claims reviewed by a
-coder, which is a pilot concern. The only non-synthetic rule is the ICD-10 one;
-the dx↔procedure table is invented for the demo and has not been validated by
-an RMIK.
-
-Proposal: [`docs/proposal.pdf`](docs/proposal.pdf) · Deck: [`docs/deck.pdf`](docs/deck.pdf)
+- [Limitations and evaluation notes](docs/limitation.md)
+- [Beta API request collection (Bruno)](docs/beta-api)
+- [Proposal](docs/proposal.pdf) · [Pitch deck](docs/deck.pdf)
