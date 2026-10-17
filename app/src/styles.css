@@ -2554,6 +2554,12 @@ button:disabled:hover {
   font-size: 10px;
   color: #9ba7b8;
 }
+.basis-official { color: #13764b; }
+.basis-local { color: #936500; }
+.basis-synthetic { color: #a44e3c; }
+.rule-basis { font-size: 10px; }
+.import-button { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.import-button input { display: none; }
 .rule-source {
   font-size: 11px;
   color: #8fa0b0;
