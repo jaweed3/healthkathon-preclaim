@@ -2,14 +2,15 @@
   "name": "@preclaim/core",
   "private": true,
   "version": "0.1.0",
-  "description": "Shared claim domain logic — the single source of truth for status vocabulary, scoring rules, and synthetic data.",
+  "description": "Shared claim domain logic \u2014 the single source of truth for status vocabulary, scoring rules, and synthetic data.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "evaluate": "bun run src/cli.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.4.3"

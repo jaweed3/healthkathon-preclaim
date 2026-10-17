@@ -36,7 +36,8 @@ test.describe('penilaian klaim baru', () => {
       documents: true,
     })
 
-    await expect(page.getByText('Tidak ada temuan aktif')).toBeVisible()
+    // Scoped to the findings area: the success notice repeats the same phrase.
+    await expect(page.locator('.detail .empty')).toBeVisible()
   })
 
   test('kode dari diagnosis lain ditahan', async ({ page }) => {

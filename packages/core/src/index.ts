@@ -51,3 +51,16 @@ export {
   type RuleSet,
 } from "./rules";
 export { seed, rawSeed } from "./seed";
+export {
+  generate,
+  runRules,
+  type Generated,
+  type GeneratorOptions,
+} from "./generator";
+export {
+  evaluate,
+  formatReport,
+  runStandardEvaluation,
+  type Report,
+  type RuleMetrics,
+} from "./evaluate";

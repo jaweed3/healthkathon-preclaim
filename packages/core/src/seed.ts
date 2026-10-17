@@ -42,7 +42,7 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
     patient: "Pasien C-089",
     service: "Rawat inap • Interna",
     date: "18 Sep 2026",
-    amount: "Rp 7.200.000",
+    amount: "Rp 7.150.000",
     status: "Perlu ditinjau",
     score: 42,
     diagnosis: "A09 — Gastroenteritis",

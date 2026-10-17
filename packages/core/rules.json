@@ -51,9 +51,12 @@
       "version": "1.0.0",
       "severity": "warn",
       "title": "Kemiripan klaim",
-      "description": "Mendeteksi diagnosis, tindakan, dan lama rawat yang mirip dengan klaim lain — penanda klaim tertukar atau terduplikasi.",
+      "description": "Mendeteksi diagnosis, tindakan, lama rawat, dan nilai tagihan yang mirip pada klaim berbeda — penanda klaim tertukar atau terduplikasi. Nilai ikut dibandingkan karena diagnosis, tindakan, dan lama rawat saja sering sama pada keluhan rutin, sehingga tidak cukup untuk menandai apa pun.",
       "source": "Perbandingan antar klaim, ambang internal. SINTETIS untuk demo.",
-      "params": { "threshold": 0.8, "fields": ["diagnosis", "procedure", "length"] }
+      "params": {
+        "threshold": 0.8,
+        "fields": ["diagnosis", "procedure", "length", "amount"]
+      }
     },
     {
       "id": "icd10-ch18-primary",

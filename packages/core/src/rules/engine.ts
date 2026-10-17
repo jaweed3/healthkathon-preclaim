@@ -1,4 +1,4 @@
-import { codeOf, daysOf } from "../codes";
+import { amountOf, codeOf, daysOf } from "../codes";
 import type { Claim, Flag } from "../schema";
 import type { Rule } from "./schema";
 
@@ -14,7 +14,15 @@ export type RuleContext = { claim: Claim; claims: Claim[] };
  */
 type Evaluator = (rule: Rule, ctx: RuleContext) => Flag[];
 
-/** Fraction of the compared fields two claims agree on. */
+/**
+ * Fraction of the compared fields two claims agree on.
+ *
+ * The switch is exhaustive over the field names the policy schema allows, and
+ * the default throws rather than falling through: a missing case here returns
+ * `undefined`, which is falsy and silently lowers the score. That is exactly
+ * how a comparison field can be configured in the rule file and then quietly
+ * stop contributing.
+ */
 function similarity(a: Claim, b: Claim, fields: string[]): number {
   const same = fields.filter((f) => {
     switch (f) {
@@ -24,6 +32,10 @@ function similarity(a: Claim, b: Claim, fields: string[]): number {
         return codeOf(a.procedure) === codeOf(b.procedure);
       case "length":
         return daysOf(a.length) === daysOf(b.length);
+      case "amount":
+        return amountOf(a.amount) === amountOf(b.amount);
+      default:
+        throw new Error(`similarity: unsupported field ${String(f)}`);
     }
   }).length;
   return same / fields.length;

@@ -61,7 +61,9 @@ export const RuleSchema = z.discriminatedUnion("type", [
     type: z.literal("similarity"),
     params: z.object({
       threshold: z.number().min(0).max(1),
-      fields: z.array(z.enum(["diagnosis", "procedure", "length"])).min(1),
+      fields: z
+        .array(z.enum(["diagnosis", "procedure", "length", "amount"]))
+        .min(1),
     }),
   }),
   z.object({
