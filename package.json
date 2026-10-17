@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "bun run --cwd app dev",
     "build": "bun run --cwd app build && bun run --cwd deck build",
-    "test": "bun run --cwd packages/core test && bun run --cwd app test",
+    "test": "bun run --cwd packages/core test && bun run --cwd worker test && bun run --cwd app test",
     "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd worker typecheck",
     "worker:dev": "bun run --cwd worker dev",
     "worker:deploy": "bun run --cwd worker deploy",
