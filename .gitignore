@@ -2,5 +2,9 @@ node_modules/
 dist/
 test-results/
 *.tsbuildinfo
+# `tsc -b` emits a declaration for the composite node config (tsconfig.node.json).
+# app/src/vite-env.d.ts is hand-written and must stay tracked.
+*.d.ts
+!app/src/vite-env.d.ts
 .DS_Store
 *.log
