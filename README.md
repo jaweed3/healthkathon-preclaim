@@ -28,9 +28,10 @@ bun install && bun run dev     # http://127.0.0.1:5173
 
 ```
 packages/core/   domain: rules.json policy, evaluators, scoring, Zod schemas
-app/             React + Vite prototype      app/test/ agent-browser e2e
+app/             React + Vite prototype
 worker/          Cloudflare Worker, beta API
 deck/            pitch deck
+tests/           all unit, contract, and browser e2e tests in one place
 docs/            symlinks to proposal and deck artifacts
 ```
 
