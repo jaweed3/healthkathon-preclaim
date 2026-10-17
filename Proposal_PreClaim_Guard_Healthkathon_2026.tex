@@ -160,11 +160,11 @@ Perubahan aturan & Rules/grouper berkembang. & Version/effective date/source. \\
 Black-box AI & Flag tanpa alasan. & Rules-first + explainability + override. \\ \hline
 \end{longtable}
 \section{Solusi yang Diusulkan}
-PreClaim Guard adalah pintu pemeriksaan kualitas yang duduk di meja koder. Sistem membaca data klaim dan evidence terstruktur, menjalankan aturan yang pasti beserta model anomali lokal, lalu menghasilkan temuan yang perlu ditinjau. Semua ini terjadi sebelum pengajuan. Posisinya melengkapi verifikasi BPJS yang bekerja setelah klaim masuk: verifikasi BPJS bersifat represif, kami bersifat preventif. Keduanya tidak saling menggantikan.
+PreClaim Guard adalah pintu pemeriksaan kualitas yang duduk di meja koder. Sistem membaca data klaim dan evidence terstruktur, menjalankan aturan yang pasti, lalu menghasilkan temuan yang perlu ditinjau. Semua ini terjadi sebelum pengajuan. Posisinya melengkapi verifikasi BPJS yang bekerja setelah klaim masuk: verifikasi BPJS bersifat represif, kami bersifat preventif. Keduanya tidak saling menggantikan.
 \callout{Non-goal}{Bukan pengganti E-Klaim atau iDRG, bukan grouper, bukan verifikator BPJS, bukan alat diagnosis, dan bukan sistem yang menyatakan fraud. Tidak ada penolakan otomatis, dan tidak ada skor tanpa penjelasan.}
 
 \subsection{Apa yang keluar dari sistem}
-Setiap klaim yang diperiksa mendapat skor risiko untuk menentukan prioritas review dan skor kesiapan sebagai penanda internal apakah klaim sudah layak submit. Keduanya adalah konfigurasi teknis internal, bukan standar resmi BPJS. Setiap temuan disertai tingkat keparahan, penjelasan dalam bahasa manusia, evidence pemicunya, dan aturan yang terpicu beserta ID, versi, dan sumbernya. Kalau temuan berasal dari model, tingkat keyakinannya dicantumkan terpisah dari skor. Rekomendasi tindakannya selalu mengarah ke review dan perbaikan, bukan ke optimasi pendapatan. Setelah koder memperbaiki atau menyetujui dengan alasan tercatat, pemeriksaan ulang menampilkan apa yang berubah beserta jejak auditnya. Tampilan perubahan inilah yang menjadi momen utama demo kami.
+Setiap klaim yang diperiksa mendapat satu skor risiko yang menentukan prioritas review. Skor itu diturunkan dari temuannya, sehingga tidak mungkin berbeda dengan temuan yang tampil di layar. Keduanya adalah konfigurasi teknis internal, bukan standar resmi BPJS. Setiap temuan disertai tingkat keparahan, penjelasan dalam bahasa manusia, evidence pemicunya, dan aturan yang terpicu beserta ID, versi, dan sumbernya. Kalau temuan berasal dari model, tingkat keyakinannya dicantumkan terpisah dari skor. Rekomendasi tindakannya selalu mengarah ke review dan perbaikan, bukan ke optimasi pendapatan. Setelah koder memperbaiki atau menyetujui dengan alasan tercatat, pemeriksaan ulang menampilkan apa yang berubah beserta jejak auditnya. Tampilan perubahan inilah yang menjadi momen utama demo kami.
 
 \section{Scope MVP dan Pemetaan Challenge}
 \subsection{Tiga kemampuan inti}
@@ -222,8 +222,14 @@ Alur koder dirancang satu layar tanpa pindah aplikasi. Klaim masuk antrean yang 
 \\{\small Gambar 2. Arsitektur konseptual; target deployment local-first/on-premise.}
 \end{center}
 
-\section{Desain Rule Engine, ML, dan Explainability}
-Pembagian kerjanya sederhana. Aturan yang pasti dikerjakan mesin aturan, karena hasilnya bisa diuji dan diaudit. Setiap aturan punya ID, versi, tanggal berlaku, sumber, tingkat keparahan, dan test case, dan dikelola sebagai kode dalam format JSON atau YAML. Model dipakai hanya untuk pola yang tidak praktis ditulis sebagai aturan: anomali lama rawat dan episode, pola angka biaya, plus kemiripan teks untuk menangkap copy paste antar klaim. Model tidak pernah mengeluarkan label fraud. Yang keluar hanya indikator risiko dengan tingkat keyakinan yang dicantumkan terpisah dari skor. Setiap aturan berversi sehingga transisi INA-CBG ke iDRG ditangani lewat adapter kebijakan, bukan aturan yang ditanam mati untuk satu grouper [10]. Target teknisnya: jalur aturan maksimal 1 detik per klaim terstruktur, 100 persen unit test lolos untuk aturan demo yang dicakup, dan 100 persen temuan punya alasan plus sumber atau evidence.
+\section{Desain Rule Engine dan Explainability}
+\callout{Rules-first, bukan model-first}{Untuk hackathon ini seluruh deteksi berjalan di mesin aturan. Model anomali ada di roadmap pascahackathon, bukan di prototype. Alasannya: aturan bisa diuji, di-audit, dan ditanya koder satu per satu, sementara angka performa model pada data yang kita buat sendiri tidak membuktikan apa pun.}
+
+Aturan dimuat dari file JSON berversi. Setiap entri memuat ID, versi, sumber, tingkat keparahan, dan parameter; sementara \emph{perilaku} aturan berasal dari evaluator tetap di dalam engine (tipe \texttt{dx\_procedure}, \texttt{required\_evidence}, \texttt{similarity}, \texttt{los\_threshold}, \texttt{icd10\_primary\_diagnosis}). Jadi kebijakannya data-driven, tapi tidak kami bangun menjadi bahasa aturan: tidak ada ekspresi yang bisa dievaluasi dari file, dan tidak ada cara menulis aturan yang tidak kamiunderstand.
+
+Setiap aturan memunculkan temuan yang membawa \texttt{ruleId}, versi, dan sumbernya. Mengoreksi kode tindakan hanya menjalankan ulang aturan yang inputnya berubah; temuan dari aturan lain tetap berlaku dan tidak ikut terhapus. Ini yang membuat skor risiko bisa diturunkan dari temuannya sendiri, sehingga skor dan tampilan tidak mungkin berbeda.
+
+Transisi INA-CBG ke iDRG ditangani sebagai versi baru berkas aturan plus adapter kebijakan, bukan dengan menyematkan aturan mati untuk satu grouper [10]. Target teknisnya: jalur aturan maksimal 1 detik per klaim terstruktur, 100 persen unit test lolos untuk aturan demo yang tercakup, dan 100 persen temuan punya alasan plus sumber atau evidence.
 
 \section{Strategi Data, Privasi, dan Keamanan}
 \callout{Kepatuhan data}{Participant Guide melarang real data peserta JKN tanpa izin tertulis. Data nyata dalam proposal hanya agregat publik/penelitian terbit; prototype menggunakan synthetic/anonymized data [1].}
@@ -249,13 +255,13 @@ Security-by-design: local inference, no public AI API pada core path, RBAC, leas
 \rowcolor{blue!15} \textbf{Area} & \textbf{Metrik} & \textbf{Target prototype (bukan hasil)} \\ \hline
 \endhead
 Rules & Unit test pass rate & 100\% pada covered demo rules. \\ \hline
-Detection & Precision/Recall/F1 & Laporkan per anomaly; target F1 ≥0,75 untuk ML assistive. \\ \hline
+Deteksi & Precision dan recall per aturan & Dilaporkan per aturan pada 200 klaim synthetic dengan anomali yang disuntik. \\ \hline
 False positive & FPR & Target <10\% pada normal synthetic set. \\ \hline
 Kecepatan & Processing time & Target ≤1 detik/structured claim pada rule path. \\ \hline
 Explainability & Finding completeness & 100\% finding punya reason dan source/evidence. \\ \hline
 Remediation & Resolved after correction & Diukur pada scripted cases. \\ \hline
 \end{longtable}
-Target di atas adalah kriteria penerimaan pengembangan yang diukur pada data synthetic dengan anomali yang sengaja disuntik dan kunci jawaban yang diketahui, bukan klaim performa di dunia nyata. Evaluasi memakai pytest plus data synthetic. Model pembantu dilaporkan per jenis anomali dengan target F1 minimal 0,75 dan false positive di bawah 10 persen pada data synthetic normal. Yang kami janjikan ke juri bukan angka yang bombastis, melainkan sistem yang bisa dijalankan di depan mata: data synthetic masuk, temuan keluar beserta alasannya, koreksi dilakukan, skor berubah.
+Target di atas adalah kriteria penerimaan pengembangan yang diukur pada data synthetic dengan anomali yang sengaja disuntik dan kunci jawaban yang diketahui, bukan klaim performa di dunia nyata. Evaluasi dijalankan dengan Bun test dan Playwright di atas data synthetic yang dihasilkan generator kami sendiri. Yang kami janjikan ke juri bukan angka yang bombastis, melainkan sistem yang bisa dijalankan di depan mata: data synthetic masuk, temuan keluar beserta alasannya, koreksi dilakukan, skor berubah.
 
 \section{Analisis Dampak}
 Dampak yang ditargetkan adalah lebih banyak issue addressable diselesaikan sebelum submit, review yang lebih terprioritas, dan traceability yang lebih baik. Formula pilot:
@@ -270,13 +276,13 @@ RSUD Pasar Minggu menunjukkan perbedaan antara share pending berkas (5,45\%) dan
 \hline
 \rowcolor{blue!15} \textbf{Layer} & \textbf{Teknologi} \\ \hline
 \endhead
-Frontend & Next.js / React \\ \hline
-Backend & FastAPI / Python \\ \hline
-Database & PostgreSQL \\ \hline
-Rules & JSON/YAML + version metadata \\ \hline
-ML & scikit-learn \\ \hline
-Deployment & Docker Compose / Ubuntu \\ \hline
-Testing & pytest + synthetic fixtures \\ \hline
+Frontend & React 19 + Vite + TypeScript \\ \hline
+Runtime dan build & Bun 1.3, workspace monorepo \\ \hline
+Validasi skema & Zod 4 \\ \hline
+Penyimpanan & localStorage per-perangkat, tanpa server \\ \hline
+Rules & JSON berversi + evaluator tetap di paket \texttt{@preclaim/core} \\ \hline
+Backend opsional & Cloudflare Worker, API beta, belum dipanggil aplikasi \\ \hline
+Pengujian & Bun test (82 unit) dan Playwright (72 e2e) \\ \hline
 \end{longtable}
 \subsection{Rencana tiga minggu}
 \begin{longtable}{|p{4cm}|p{11cm}|}
@@ -288,13 +294,13 @@ Testing & pytest + synthetic fixtures \\ \hline
 \endhead
 Pra-hackathon & Problem, rule schema, synthetic plan, wireframe, repo. \\ \hline
 Minggu 1 & Schema, generator, rule/evidence engine, dashboard. \\ \hline
-Minggu 2 & Risk/readiness, remediation, audit, ML baseline. \\ \hline
-Minggu 3 & Evaluation, security demo, 3 cases, pitch \& docs. \\ \hline
+Minggu 2 & Skor risiko dari temuan, remediasi, jejak audit. \\ \hline
+Minggu 3 & Evaluasi per aturan, demo keamanan, 3 kasus, pitch dan dokumentasi. \\ \hline
 \end{longtable}
 Participant Guide: registrasi 14 Agustus-14 September 2026; submit proposal 14 Agustus-19 September 2026; seleksi TBA; coaching dan Demo Day TBC; Hackathon Event TBC (diagram menyebut sekitar 3 minggu) [1].
 
 \section{Strategi Demo}
-Demo tiga menit dibuka dengan satu draf klaim dummy yang terlihat normal. Sistem memunculkan dua peringatan: dugaan upcoding karena diagnosis tidak mendukung tindakan, dan dugaan copy paste karena kemiripan tinggi dengan klaim sehari sebelumnya. Koder membuka penjelasan tiap temuan, yaitu aturan apa yang terpicu dan evidence apa yang kurang, lalu memperbaiki kode, menekan pemeriksaan ulang, dan menyaksikan skor risiko turun (misalnya 82 menjadi 19) serta skor kesiapan naik (misalnya 31 menjadi 91) pada tampilan perubahan. Alur ini kecil tetapi utuh dan bisa diverifikasi juri dari input sampai keputusan. Semua angka demo adalah synthetic dan tidak dipresentasikan sebagai performa dunia nyata.
+Demo dibuka dengan satu klaim rawat inap yang punya dua temuan: diagnosis tidak mendukung tindakan yang dikodekan, dan tindakan invasif tanpa dokumen pendukung. Koder membuka penjelasan tiap temuan, memperbaiki kode tindakan, lalu menjalankan ulang pemeriksaan. Yang terjadi bukan skor turun ke angka bersih, melainkan skor turun dari 70 ke 52 karena temuan diagnosis selesai, sementara temuan durasi rawat tetap tampil. Itulah bukti yang kami tunjukkan: sistem tidak asal menghijaukan klaim hanya karena koder menekan tombol. Koder lalu menyetujui klaim dengan catatan tertulis, dan catatan itu masuk ke jejak audit bersama daftar temuan yang ditimpanya. Jejak yang sama tetap ada setelah halaman dimuat ulang. Alur ini kecil tetapi utuh dan bisa diverifikasi juri dari input sampai keputusan. Semua angka demo adalah synthetic dan tidak dipresentasikan sebagai performa dunia nyata.
 
 \section{Risiko, Batasan, dan Etika}
 \begin{longtable}{|p{5cm}|p{10cm}|}
@@ -404,9 +410,8 @@ ground\_truth & missing\_evidence & Evaluation only \\ \hline
 POST /api/v1/claims/analyze
 {
   "claim_id": "SYN-2026-0001",
-  "risk_score": 72,
-  "readiness_score": 41,
-  "status": "NEEDS_REVIEW",
+  "risk_score": 70,
+  "status": "Perlu ditinjau",
   "findings": [{
     "type": "missing_evidence",
     "severity": "high",
