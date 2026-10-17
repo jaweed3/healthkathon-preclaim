@@ -21,11 +21,17 @@ import type { Claim, Flag } from "./index";
 const warn = (ruleId: string): Flag => ({
   ruleId,
   message: "m",
+  reason: "m",
+  source: "test",
+  evidence: ["fixture"],
   severity: "warn",
 });
 const info = (ruleId: string): Flag => ({
   ruleId,
   message: "m",
+  reason: "m",
+  source: "test",
+  evidence: ["fixture"],
   severity: "info",
 });
 
