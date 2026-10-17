@@ -54,7 +54,7 @@ bun run worker:dev       # or: bun run worker:deploy
 
 ```bash
 bun run typecheck   # core + worker
-bun run test        # 43 core unit tests, then 27 app e2e (Playwright)
+bun run test        # 43 core unit tests, then 35 app e2e (Playwright)
 bun run build       # app + deck
 ```
 

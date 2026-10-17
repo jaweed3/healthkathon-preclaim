@@ -1725,3 +1725,101 @@ button:disabled:hover {
 .theme-dark .rule-pairs code {
   color: #4ec3a3;
 }
+
+/* ---- Dark-mode coverage for tinted surfaces ----------------------------
+   These elements carry a light pastel background in the base styles and had
+   no `.theme-dark` counterpart, so they rendered as bright patches on the dark
+   page. Dark equivalents keep the same hue relationships but sit on the dark
+   surface: the fill drops to ~12% tint over the panel colour and the text
+   moves to the light end of the ramp. ---- */
+
+.theme-dark .score-card.high {
+  background: #2e1f1a;
+}
+.theme-dark .score-card.medium {
+  background: #2c2718;
+}
+.theme-dark .score-card.low {
+  background: #162c27;
+}
+.theme-dark .score-card span {
+  color: #8c99a6;
+}
+.theme-dark .score-card strong small {
+  color: #7d8b99;
+}
+.theme-dark .score-ring {
+  background: conic-gradient(#dc7559 var(--score), #43291f 0);
+}
+.theme-dark .score-card.low .score-ring {
+  background: conic-gradient(#2ca88a var(--score), #1b3b33 0);
+}
+
+.theme-dark .risk.high {
+  background: #3a2119;
+  color: #ef9775;
+}
+.theme-dark .risk.medium {
+  background: #382a13;
+  color: #e8ac53;
+}
+.theme-dark .risk.low {
+  background: #16332c;
+  color: #4ec3a3;
+}
+
+.theme-dark .status.warn {
+  background: #38290f;
+  color: #e2a35c;
+}
+.theme-dark .status.ready {
+  background: #14342e;
+  color: #4ec3a3;
+}
+.theme-dark .status.done {
+  background: #1b2942;
+  color: #7fa3dc;
+}
+
+.theme-dark .filters {
+  border-color: #263844;
+}
+.theme-dark .filters button {
+  color: #8fa0b0;
+  border-left-color: #263844;
+}
+.theme-dark .filters .filter-active {
+  background: #14342e;
+  color: #4ec3a3;
+}
+
+.theme-dark .empty {
+  background: #16242f;
+  border-color: #263844;
+}
+.theme-dark .notice {
+  background: #14342e;
+  color: #4ec3a3;
+  border-color: #1d4c42;
+}
+.theme-dark .legend b {
+  color: #b8c7d1;
+}
+.theme-dark .revision-box {
+  background: #16242f;
+  border-color: #263844;
+}
+.theme-dark .rules-overlay {
+  background: rgba(4, 12, 18, 0.82);
+}
+.theme-dark nav button {
+  color: #8fa0b0;
+}
+.theme-dark nav button.active {
+  background: #14342e;
+  color: #4ec3a3;
+}
+.theme-dark nav em {
+  background: #3a2a13;
+  color: #e2a35c;
+}

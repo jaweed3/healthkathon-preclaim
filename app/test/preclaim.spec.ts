@@ -327,3 +327,58 @@ test.describe('aturan pemeriksaan', () => {
     await expect(page.getByRole('dialog', { name: 'Aturan pemeriksaan' })).toHaveCount(0)
   })
 })
+
+/**
+ * Dark mode had no automated coverage, so a dozen tinted surfaces kept their
+ * light pastel backgrounds and rendered as bright patches on the dark page.
+ * These assert the actual computed background luminance, which fails for any
+ * element that keeps a light fill in dark mode.
+ */
+const luminance = (page: import('@playwright/test').Page, selector: string) =>
+  page.evaluate((sel) => {
+    const el = document.querySelector(sel)
+    if (!el) return null
+    const [r, g, b] = getComputedStyle(el)
+      .backgroundColor.match(/[\d.]+/g)!
+      .map(Number)
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  }, selector)
+
+/** Elements that carry a tinted fill and must be re-tinted for dark mode. */
+const TINTED = [
+  '.score-card',
+  '.status.warn',
+  '.risk.high',
+  '.filters .filter-active',
+  'nav button.active',
+  'nav em',
+]
+
+test.describe('dark mode', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: /Gunakan mode gelap/ }).click()
+    await expect(page.locator('.shell')).toHaveClass(/theme-dark/)
+  })
+
+  for (const sel of TINTED) {
+    test(`${sel} darkened`, async ({ page }) => {
+      const dark = await luminance(page, sel)
+      expect(dark).not.toBeNull()
+      expect(dark!).toBeLessThan(0.5)
+    })
+  }
+
+  test('permukaan bertema tetap gelap setelah muat ulang', async ({ page }) => {
+    await page.reload()
+    await expect(page.locator('.shell')).toHaveClass(/theme-dark/)
+    expect(await luminance(page, '.score-card')).toBeLessThan(0.5)
+  })
+
+  test('tema terang tidak terpengaruh', async ({ page }) => {
+    await page.getByRole('button', { name: /Gunakan mode terang/ }).click()
+    await expect(page.locator('.shell')).not.toHaveClass(/theme-dark/)
+    // Back to the light pastel palette.
+    expect(await luminance(page, '.score-card')).toBeGreaterThan(0.8)
+  })
+})
