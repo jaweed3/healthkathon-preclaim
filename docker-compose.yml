@@ -1,0 +1,8 @@
+services:
+  preclaim-guard:
+    build: .
+    ports:
+      - "4173:4173"
+    environment:
+      - HOST=0.0.0.0
+    restart: unless-stopped
