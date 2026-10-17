@@ -1,10 +1,12 @@
 import type { CSSProperties } from 'react'
-import { CLAIM_STATUS, scoreTone, type Claim } from '@preclaim/core'
+import { CLAIM_STATUS, scoreTone, type Claim, type Revision } from '@preclaim/core'
 import RevisionModal from './RevisionModal'
 import StatusBadge from './StatusBadge'
 
 type Props = {
   claim: Claim
+  /** Persisted revision trail for this claim, newest last. */
+  revisions: Revision[]
   notice: string
   note: string
   onNote: (v: string) => void
@@ -101,6 +103,32 @@ export default function ClaimDetail(props: Props) {
           <b>{claim.amount}</b>
         </div>
       </div>
+
+      {props.revisions.length > 0 && (
+        <div className="audit-trail">
+          <div className="section-title">
+            <h3>Riwayat revisi</h3>
+            <span>{props.revisions.length} tercatat</span>
+          </div>
+          {props.revisions.map((r, i) => (
+            <div className="audit-entry" key={r.at}>
+              <div className="audit-meta">
+                <b>
+                  {r.previousScore} → {r.newScore}
+                </b>
+                <span>{new Date(r.at).toLocaleString('id-ID')}</span>
+              </div>
+              <div className="audit-change">
+                {r.from} <i>→</i> {r.to}
+              </div>
+              <p>{r.reason}</p>
+              <span className={r.evidence ? 'audit-evidence yes' : 'audit-evidence no'}>
+                {r.evidence ? '✓ evidence diperiksa' : '⚠ tanpa evidence'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {props.notice && <div className="notice">✓ {props.notice}</div>}
 

@@ -1447,3 +1447,78 @@ button:disabled:hover {
   border-color: inherit;
   background: inherit;
 }
+
+/* ---- Persisted revision trail ---- */
+.audit-trail {
+  border-top: 1px solid #edf0f4;
+  margin-top: 4px;
+}
+.audit-trail .section-title {
+  border-top: 0;
+}
+.audit-entry {
+  padding: 11px 0;
+  border-bottom: 1px solid #f0f1f3;
+}
+.audit-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.audit-meta b {
+  font-size: 12px;
+  color: #299478;
+}
+.audit-meta span {
+  font-size: 11px;
+  color: #8290a4;
+}
+.audit-change {
+  font-size: 12px;
+  color: #1f2933;
+  margin: 3px 0;
+}
+.audit-change i {
+  font-style: normal;
+  color: #9ba7b8;
+  margin: 0 4px;
+}
+.audit-entry p {
+  font-size: 12px;
+  color: #5b6b7a;
+  margin: 0 0 4px;
+}
+.audit-evidence {
+  font-size: 11px;
+}
+.audit-evidence.yes {
+  color: #299478;
+}
+.audit-evidence.no {
+  color: #d57a29;
+}
+
+.theme-dark .audit-trail {
+  border-color: #263844;
+}
+.theme-dark .audit-entry {
+  border-color: #263844;
+}
+.theme-dark .audit-meta b,
+.theme-dark .audit-evidence.yes {
+  color: #4ec3a3;
+}
+.theme-dark .audit-meta span,
+.theme-dark .audit-change i {
+  color: #9aabb8;
+}
+.theme-dark .audit-change {
+  color: #b8c7d1;
+}
+.theme-dark .audit-entry p {
+  color: #9aabb8;
+}
+.theme-dark .audit-evidence.no {
+  color: #dc7559;
+}

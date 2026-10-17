@@ -1,6 +1,16 @@
 import { useMemo, useState } from 'react'
-import { CLAIM_STATUS, codeOf, flagsFor, scoreClaim, seed, statusFor, type Claim } from '@preclaim/core'
-import { appendAudit } from './audit'
+import {
+  CLAIM_STATUS,
+  codeOf,
+  flagsFor,
+  scoreClaim,
+  seed,
+  statusFor,
+  type AuditEntry,
+  type Claim,
+} from '@preclaim/core'
+import { appendAudit, readAudit } from './lib/audit-log'
+import { readString, writeString } from './lib/storage'
 import ClaimDetail from './components/ClaimDetail'
 import ClaimList from './components/ClaimList'
 import Header from './components/Header'
@@ -15,12 +25,15 @@ export default function App() {
   const [view, setView] = useState<View>('all')
   const [notice, setNotice] = useState('')
   const [note, setNote] = useState('')
-  const [dark, setDark] = useState(() => localStorage.getItem(THEME_KEY) === 'dark')
+  const [dark, setDark] = useState(() => readString(THEME_KEY) === 'dark')
 
   const [revisionOpen, setRevisionOpen] = useState(false)
   const [newCode, setNewCode] = useState('47.09')
   const [reason, setReason] = useState('')
   const [evidence, setEvidence] = useState(false)
+
+  // Re-read after each revision so the trail rendered below matches what was persisted.
+  const [audit, setAudit] = useState<AuditEntry[]>(() => readAudit())
 
   const shown = useMemo(
     () => (view === 'review' ? claims.filter((c) => c.status === CLAIM_STATUS.review) : claims),
@@ -35,7 +48,7 @@ export default function App() {
   const toggleTheme = () =>
     setDark((v) => {
       const next = !v
-      localStorage.setItem(THEME_KEY, next ? 'dark' : 'light')
+      writeString(THEME_KEY, next ? 'dark' : 'light')
       return next
     })
 
@@ -71,6 +84,7 @@ export default function App() {
     }
 
     appendAudit(updated)
+    setAudit(readAudit())
     setClaims((cs) => cs.map((c) => (c.id === updated.id ? updated : c)))
     setSelected(updated)
     setRevisionOpen(false)
@@ -129,6 +143,7 @@ export default function App() {
 
           <ClaimDetail
             claim={selected}
+            revisions={audit.find((e) => e.claimId === selected.id)?.revisions ?? []}
             notice={notice}
             note={note}
             onNote={setNote}

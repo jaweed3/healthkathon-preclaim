@@ -16,8 +16,9 @@ Bun workspace monorepo — one `bun install` at the root covers everything.
 | `app/` | Runnable Vite + React prototype |
 | `worker/` | Cloudflare Worker holding the beta claim API. Deployed independently; the prototype does not call it yet (it runs fully local-first). |
 | `deck/` | Pitch deck source and generated presentation |
-| `proposal-draft.md` | Solution proposal |
-| `archive/` | Previous proposal artifact |
+| `archive/` | Superseded drafts and previous artifacts |
+| `Proposal_PreClaim_Guard_Healthkathon_2026.tex` | Proposal source |
+| `proposal-preclaim-guard.pdf` | Rendered proposal |
 
 ## Setup
 
@@ -53,7 +54,7 @@ bun run worker:dev       # or: bun run worker:deploy
 
 ```bash
 bun run typecheck   # core + worker
-bun run test        # 30 core unit tests, then 10 app e2e (Playwright)
+bun run test        # 30 core unit tests, then 14 app e2e (Playwright)
 bun run build       # app + deck
 ```
 
@@ -61,7 +62,10 @@ bun run build       # app + deck
 
 ```
 packages/core/   Zod schemas + inferred types + scoring rules + seed data
-app/             Vite + React prototype   (app/test/ — Playwright specs)
+app/             Vite + React prototype
+  src/components/   presentational components
+  src/lib/          infrastructure: storage.ts, audit-log.ts
+  test/             Playwright specs
 worker/          Cloudflare Worker beta API
 deck/            Pitch deck
 ```
@@ -81,7 +85,9 @@ Validation is applied where input is actually untrusted:
 - **The audit log.** `localStorage` is shared with every script on the origin
   and persists forever. `readAudit()` parses through `AuditLogSchema`, so a
   hand-edited or half-written entry is discarded instead of being shown as
-  though it were a real coder justification.
+  though it were a real coder justification. All `localStorage` access goes
+  through `app/src/lib/storage.ts`, which centralises the failure modes
+  (private browsing, quota, cross-script writes).
 - **The seed data**, parsed once at module load so a malformed claim fails
   loudly rather than rendering broken.
 - **The worker's own responses**, validated at startup with the same schema a
@@ -92,6 +98,18 @@ which is not a justification.
 
 Synthetic internals that are already compile-time constants are deliberately
 left unvalidated.
+
+## The audit trail
+
+`appendAudit` is called on every confirmed revision, and the resulting
+history is rendered in the claim detail panel under **Riwayat revisi** — score
+delta, old → new code, the coder's stated reason, and whether they confirmed
+they checked supporting evidence. It is read back from `localStorage`, so it
+survives a reload rather than living only in React state.
+
+That was the gap this closes: the modal was labelled *"Revisi kode secara
+auditable"* and persisted a trail, but nothing ever displayed it. A write-only
+audit log is not an audit trail.
 
 The worker used to carry its own copy of the claim status vocabulary
 (`review`/`ready`/`approved`) while the app used

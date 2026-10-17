@@ -8,3 +8,8 @@ test-results/
 !app/src/vite-env.d.ts
 .DS_Store
 *.log
+
+# Deck build intermediates. deck/build.js and the Beamer .tex both write to
+# deck/out/; the slide PNGs are exported from the PDF and nothing reads them
+# back, so they are outputs, not sources.
+deck/out/slide-*.png

@@ -141,3 +141,44 @@ test.describe('jejak audit	localStorage tidak dipercaya', () => {
     expect(await auditLog(page)).toHaveLength(0)
   })
 })
+
+test.describe('jejak audit terlihat oleh koder', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/')
+    await page.evaluate(() => localStorage.clear())
+  })
+
+  test('tidak ada riwayat sebelum ada revisi', async ({ page }) => {
+    await expect(page.locator('.audit-trail')).toHaveCount(0)
+  })
+
+  test('menampilkan alasan, bukti, dan perubahan skor setelah revisi', async ({ page }) => {
+    await openRevision(page)
+    await fillRevision(page, { reason: 'Resume medis mendukung apendektomi.' })
+
+    const trail = page.locator('.audit-trail')
+    await expect(trail).toBeVisible()
+    await expect(trail.getByText('1 tercatat')).toBeVisible()
+    await expect(trail.getByText('78 → 18')).toBeVisible()
+    await expect(trail.getByText('Resume medis mendukung apendektomi.')).toBeVisible()
+    await expect(trail.getByText('evidence diperiksa')).toBeVisible()
+  })
+
+  test('riwayat tetap tampil setelah muat ulang halaman', async ({ page }) => {
+    await openRevision(page)
+    await fillRevision(page, { reason: 'Resume medis mendukung apendektomi.' })
+    await page.reload()
+
+    // This is the point of persisting it: the coder can still see their
+    // justification on a fresh load, not just in React state.
+    await expect(page.locator('.audit-trail')).toContainText('Resume medis mendukung apendektomi.')
+  })
+
+  test('entri rusak tidak dirender', async ({ page }) => {
+    await page.evaluate(() =>
+      localStorage.setItem('preclaim-audit-log', JSON.stringify([{ claimId: 'CLM-240918-021' }])),
+    )
+    await page.reload()
+    await expect(page.locator('.audit-trail')).toHaveCount(0)
+  })
+})
