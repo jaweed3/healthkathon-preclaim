@@ -27,8 +27,8 @@ export default function RecheckPanel({
   return (
     <section className="recheck-panel" aria-label="Hasil pemeriksaan ulang">
       <div className="recheck-heading">
-        <b>Pemeriksaan ulang</b>
-        <span>Perubahan dari revisi kode</span>
+        <b>Hasil pemeriksaan ulang</b>
+        <span>Setelah revisi kode</span>
       </div>
       <div className="recheck-scores">
         <span>Risiko <b>{previousScore} → {newScore}</b></span>

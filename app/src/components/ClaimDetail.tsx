@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { CLAIM_STATUS, REVIEW_THRESHOLD, scoreTone, type AuditEvent, type Claim } from '@preclaim/core'
 import RevisionModal from './RevisionModal'
-import RecheckPanel from './RecheckPanel'
+import AuditTimeline from './AuditTimeline'
 import StatusBadge from './StatusBadge'
 
 type Props = {
@@ -22,9 +22,8 @@ type Props = {
   onConfirmRevision: () => void
   onCloseRevision: () => void
   onApprove: () => void
+  dark: boolean
 }
-
-const stamp = (at: string) => new Date(at).toLocaleString('id-ID')
 
 /** Why a rule fired, in the coder's language rather than the engine's. */
 const RULE_BLURB: Record<string, string> = {
@@ -129,65 +128,34 @@ export default function ClaimDetail(props: Props) {
             <h3>Riwayat keputusan</h3>
             <span>{props.history.length} tercatat</span>
           </div>
-          {props.history.map((event, i) => (
-            <div className="audit-entry" key={`${event.kind}-${event.at}-${i}`}>
-              {event.kind === 'revision' ? (
-                <>
-                  <div className="audit-meta">
-                    <b>
-                      {event.previousScore} → {event.newScore}
-                    </b>
-                    <span>{stamp(event.at)}</span>
-                  </div>
-                  <div className="audit-change">
-                    {event.from} <i>→</i> {event.to}
-                  </div>
-                  {event.previousFindings && event.newFindings && (
-                    <RecheckPanel
-                      previousScore={event.previousScore}
-                      newScore={event.newScore}
-                      previousReadiness={event.previousReadiness}
-                      newReadiness={event.newReadiness}
-                      previousFindings={event.previousFindings}
-                      newFindings={event.newFindings}
-                    />
-                  )}
-                  <p>{event.reason}</p>
-                  <span className={event.evidence ? 'audit-evidence yes' : 'audit-evidence no'}>
-                    {event.evidence ? '✓ evidence diperiksa' : '⚠ tanpa evidence'}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <div className="audit-meta">
-                    <b className="approval">Disetujui dengan catatan</b>
-                    <span>{stamp(event.at)}</span>
-                  </div>
-                  <p>{event.note}</p>
-                  <span className="audit-evidence no">
-                    ⚠ tetap dikirim dengan {event.findingsAtApproval.length} temuan aktif (skor {event.score})
-                  </span>
-                </>
-              )}
-            </div>
-          ))}
+          <AuditTimeline events={props.history} />
         </div>
       )}
 
-      {props.notice && <div className="notice">✓ {props.notice}</div>}
+      {props.notice && props.notice !== 'Tulis alasan persetujuan sebelum melanjutkan.' && (
+        <div className="notice">✓ {props.notice}</div>
+      )}
 
       {claim.status === CLAIM_STATUS.review && (
         <>
-          <label className="note-label" htmlFor="coder-note">
-            Catatan koder
-            <span>wajib diisi bila menyetujui klaim dengan temuan aktif</span>
-          </label>
-          <textarea
-            id="coder-note"
-            value={props.note}
-            onChange={(e) => props.onNote(e.target.value)}
-            placeholder="Tulis dasar keputusanmu, mis. verifikasi resume medis, atau koreksi kode."
-          />
+          <div className="coder-note-field">
+            <label className="note-label" htmlFor="coder-note">
+              Catatan koder <span className="required-mark">• wajib saat menyetujui</span>
+            </label>
+            <textarea
+              id="coder-note"
+              value={props.note}
+              onChange={(e) => props.onNote(e.target.value)}
+              placeholder="Tulis dasar keputusan, mis. hasil verifikasi resume medis."
+              aria-invalid={props.notice === 'Tulis alasan persetujuan sebelum melanjutkan.' && !props.note.trim()}
+              aria-describedby={props.notice === 'Tulis alasan persetujuan sebelum melanjutkan.' ? 'coder-note-error' : 'coder-note-help'}
+            />
+            {props.notice === 'Tulis alasan persetujuan sebelum melanjutkan.' ? (
+              <span className="field-error" id="coder-note-error" role="alert">Catatan koder wajib diisi sebelum menyetujui.</span>
+            ) : (
+              <span className="field-help" id="coder-note-help">Dicatat di riwayat bila klaim disetujui dengan temuan aktif.</span>
+            )}
+          </div>
 
           {props.revisionOpen && (
             <RevisionModal
@@ -200,6 +168,7 @@ export default function ClaimDetail(props: Props) {
               onEvidence={props.onEvidence}
               onConfirm={props.onConfirmRevision}
               onClose={props.onCloseRevision}
+              dark={props.dark}
             />
           )}
 

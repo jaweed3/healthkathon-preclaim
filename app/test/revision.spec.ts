@@ -64,7 +64,20 @@ test.describe('memperbaiki temuan diagnosis-tindakan', () => {
     await revise(page, { code: '47.09', reason: 'Resume medis mendukung apendektomi.' })
 
     await expect(page.locator('.audit-trail')).toContainText(`${SCORES.dxMismatch} → 24`)
-    await expect(page.locator('.audit-trail')).toContainText('evidence diperiksa')
+    await expect(page.locator('.audit-trail .audit-note')).toContainText('Alasan')
+    await expect(page.locator('.audit-trail .audit-note')).toContainText('Resume medis mendukung apendektomi.')
+    await expect(page.locator('.audit-trail')).toContainText('Evidence diperiksa')
+  })
+
+  test('menampilkan timeline dan menandai skor yang tidak berubah', async ({ page }) => {
+    await revise(page, { code: '99.04', reason: 'Kode sudah sesuai dengan dokumen.' })
+
+    const timeline = page.getByRole('list', { name: 'Linimasa audit' })
+    await expect(timeline.getByRole('listitem')).toHaveCount(1)
+    await expect(timeline).toContainText('Revisi kode')
+    await expect(timeline).toContainText('70 → 70')
+    await expect(timeline).toContainText('Tidak berubah')
+    await expect(timeline).toContainText('Hasil pemeriksaan ulang')
   })
 
   test('menampilkan hasil pemeriksaan ulang: skor, kesiapan, temuan selesai dan tersisa', async ({ page }) => {
@@ -91,6 +104,17 @@ test.describe('memperbaiki temuan diagnosis-tindakan', () => {
 })
 
 test.describe('menolak revisi yang tidak dapat dibenarkan', () => {
+  test('menjelaskan field wajib yang belum diisi', async ({ page }) => {
+    await selectClaim(page, IDS.dxMismatch)
+    await page.getByRole('button', { name: '↺ Revisi kode' }).click()
+    await page.getByLabel('Kode tindakan koreksi').fill(' ')
+    await page.getByRole('button', { name: 'Konfirmasi revisi' }).click()
+
+    await expect(page.getByText('Kode tindakan koreksi wajib diisi.')).toBeVisible()
+    await expect(page.getByText('Alasan perubahan wajib diisi.')).toBeVisible()
+    await expect(page.getByText('Konfirmasi pemeriksaan evidence wajib dicentang.')).toBeVisible()
+  })
+
   test('tanpa alasan dan bukti', async ({ page }) => {
     await selectClaim(page, IDS.dxMismatch)
     await revise(page, { code: '47.09', reason: '', evidence: false })

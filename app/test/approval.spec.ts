@@ -23,7 +23,9 @@ test.describe('menyetujui klaim', () => {
   test('tidak bisa tanpa catatan', async ({ page }) => {
     await approve(page)
 
-    await expect(page.getByText(NOTICE.approvalNeedsNote)).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveText('Catatan koder wajib diisi sebelum menyetujui.')
+    await expect(page.locator('#coder-note')).toHaveAttribute('aria-invalid', 'true')
+    await expect(page.locator('.notice')).toHaveCount(0)
     await expect(detailStatus(page)).toHaveText('Perlu ditinjau')
     expect(await auditLog(page)).toHaveLength(0)
   })
@@ -50,9 +52,9 @@ test.describe('menyetujui klaim', () => {
     await approve(page, 'Duplikasi administratif.')
 
     const trail = page.locator('.audit-trail')
-    await expect(trail).toContainText('Disetujui dengan catatan')
+    await expect(trail).toContainText('Persetujuan dengan catatan')
     await expect(trail).toContainText('Duplikasi administratif.')
-    await expect(trail).toContainText('tetap dikirim dengan')
+    await expect(trail).toContainText('Disetujui dengan 2 temuan aktif')
   })
 
   test('menghilang dari daftar perlu ditinjau setelah disetujui', async ({ page }) => {
@@ -80,7 +82,7 @@ test.describe('riwayat gabungan', () => {
     const log = await auditLog(page)
     expect(log[0].events).toHaveLength(2)
     expect(log[0].events.map((e: { kind: string }) => e.kind)).toEqual(['revision', 'approval'])
-    await expect(page.locator('.audit-trail .audit-entry')).toHaveCount(2)
+    await expect(page.locator('.audit-trail .timeline-event')).toHaveCount(2)
   })
 
   test('formir keputusan menghilang setelah klaim disetujui', async ({ page }) => {
