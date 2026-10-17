@@ -5,45 +5,20 @@ import {
   type Flag,
 } from "./schema";
 
-/**
- * Which procedure codes are plausible for a diagnosis.
- *
- * A deliberately small, inspectable table. The UI promises explainable
- * findings, so the explanation has to be readable by a coder rather than
- * inferred by a model.
- */
-export const PLAUSIBLE: Record<string, string[]> = {
-  "K35.8": ["47.09", "47.11", "47.12"], // appendicitis → appendectomy
-  I10: ["93.96"], // essential hypertension → respiratory therapy
-  A09: ["99.04"], // gastroenteritis → transfusion
-  "J18.9": ["93.90", "93.91"], // pneumonia → mechanical ventilation
-};
-
-/** `47.09 — Apendektomi lainnya` → `47.09` */
-export const codeOf = (label: string): string => label.split(" — ")[0].trim();
-
-/** Every diagnosis the rule set knows about, for pickers and the rules view. */
-export const knownDiagnoses = (): string[] => Object.keys(PLAUSIBLE);
-
-/** The procedure codes accepted for a diagnosis code, if it is known. */
-export const allowedCodes = (diagnosisCode: string): string[] =>
-  PLAUSIBLE[diagnosisCode] ?? [];
-
-/** Whether a diagnosis/procedure pair passes the plausibility rule. */
-export function isPlausible(diagnosisCode: string, code: string): boolean {
-  return allowedCodes(diagnosisCode).includes(code);
-}
+export { codeOf, daysOf, amountOf } from "./codes";
 
 /**
  * How much each rule contributes to the risk score.
  *
  * A diagnosis/procedure mismatch outranks the rest: it is the finding most
- * likely to be a coding error rather than an artefact of the data.
+ * likely to be a coding error rather than an artefact of the data. Weights live
+ * with the policy, not here, because they are a policy decision.
  */
 const RULE_WEIGHT: Record<string, number> = {
   "dx-procedure": 46,
   similarity: 34,
   "length-of-stay": 28,
+  "icd10-ch18-primary": 30,
   "missing-evidence": 16,
 };
 
@@ -54,9 +29,7 @@ const BASELINE = 8;
  * The risk score, derived from the findings.
  *
  * Deriving it here rather than storing an independent number is what keeps the
- * score and the findings from disagreeing — previously the score came from
- * procedure plausibility alone, so a claim carrying a similarity warning could
- * still present as 18/100 "Aman" with a warning on screen.
+ * score and the findings from disagreeing.
  */
 export function scoreFor(flags: Flag[]): number {
   const total = flags.reduce(

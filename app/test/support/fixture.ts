@@ -53,7 +53,13 @@ export const REVIEW_IDS = [IDS.dxMismatch, IDS.duplicateA, IDS.duplicateB, IDS.l
 /** Claims scoring at or above the review threshold. */
 export const RISKY_IDS = [IDS.dxMismatch, IDS.duplicateA, IDS.duplicateB]
 
-export const RULES = ['dx-procedure', 'length-of-stay', 'missing-evidence', 'similarity'] as const
+export const RULES = [
+  'dx-procedure',
+  'length-of-stay',
+  'missing-evidence',
+  'similarity',
+  'icd10-ch18-primary',
+] as const
 
 export const NOTICE = {
   needsReview: 'Kode diperbarui. Kombinasi diagnosis–tindakan masih perlu ditinjau.',

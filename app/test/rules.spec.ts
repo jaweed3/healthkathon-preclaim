@@ -35,6 +35,14 @@ test.describe('daftar aturan', () => {
     await expect(dialog).toContainText('hanya menjalankan ulang aturan')
   })
 
+  test('aturan ICD-10 mengutip pedoman publik, bukan aturan lokal', async ({ page }) => {
+    const dialog = await openRules(page)
+
+    // The other rules are synthetic demo data. This one is traceable to a
+    // published guideline, which is the point of shipping it.
+    await expect(dialog).toContainText('I.C.18')
+  })
+
   test('dapat ditutup', async ({ page }) => {
     const dialog = await openRules(page)
     await page.getByRole('button', { name: 'Tutup aturan pemeriksaan' }).click()

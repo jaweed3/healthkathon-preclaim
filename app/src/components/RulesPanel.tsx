@@ -1,4 +1,4 @@
-import { INSPECTION_RULES, PLAUSIBLE } from '@preclaim/core'
+import { INSPECTION_RULES, knownDiagnoses, allowedCodes } from '@preclaim/core'
 import { X } from 'lucide-react'
 
 /**
@@ -42,12 +42,12 @@ export default function RulesPanel({ onClose }: { onClose: () => void }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(PLAUSIBLE).map(([dx, codes]) => (
+                  {knownDiagnoses().map((dx) => (
                     <tr key={dx}>
                       <td>
                         <code>{dx}</code>
                       </td>
-                      <td>{codes.join(', ')}</td>
+                      <td>{allowedCodes(dx).join(', ')}</td>
                     </tr>
                   ))}
                 </tbody>

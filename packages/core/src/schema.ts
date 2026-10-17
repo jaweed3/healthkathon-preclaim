@@ -101,6 +101,14 @@ export const ClaimSchema = z.object({
   flags: z.array(FlagSchema),
   /** Supporting documents recorded for this claim (resume, lab, imaging). */
   documents: z.array(nonBlank).optional(),
+  /**
+   * Definitive diagnoses established for this claim, if any.
+   *
+   * Needed by the ICD-10 chapter R rule, which only applies once a definitive
+   * diagnosis exists. Without this the rule would fire on every undetermined
+   * case, where symptom codes are the correct answer.
+   */
+  establishedDiagnoses: z.array(nonBlank).optional(),
   history: z.array(AuditEventSchema).optional(),
 });
 

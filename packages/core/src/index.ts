@@ -22,25 +22,32 @@ export {
   type Revision,
 } from "./schema";
 export {
-  PLAUSIBLE,
   REVIEW_THRESHOLD,
-  allowedCodes,
+  amountOf,
   averageScore,
   codeOf,
-  isPlausible,
-  knownDiagnoses,
+  daysOf,
   scoreFor,
   scoreTone,
   statusFor,
 } from "./scoring";
 export {
+  EVALUATOR_TYPES,
   INSPECTION_RULES,
+  POLICY,
+  allowedCodes,
   evaluateAll,
   evaluateRules,
   initialFlags,
+  isPlausible,
+  knownDiagnoses,
   recomputeRule,
   replaceFlagsForRule,
-  type InspectionRule,
+  ruleById,
+  ruleByType,
+  type EvaluatorType,
+  type Rule,
   type RuleContext,
+  type RuleSet,
 } from "./rules";
-export { seed } from "./seed";
+export { seed, rawSeed } from "./seed";

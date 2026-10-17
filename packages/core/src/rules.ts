@@ -1,161 +1,29 @@
+import { codeOf } from "./codes";
 import { CLAIM_STATUS, type Claim, type Flag } from "./schema";
-import { codeOf, isPlausible, scoreFor, statusFor } from "./scoring";
+import { RULE_EVALUATORS } from "./rules/engine";
+import { POLICY } from "./rules/policy";
+import { scoreFor, statusFor } from "./scoring";
 
-/**
- * Procedure codes that need supporting documents before submission.
- *
- * Invasive or high-cost interventions are the ones a coder should not file on
- * a diagnosis page alone.
- */
-const INVASIVE = new Set([
-  "47.09",
-  "47.11",
-  "47.12", // appendectomy
-  "93.90",
-  "93.91", // mechanical ventilation
-  "99.04", // transfusion
-]);
+export { POLICY };
+export type { Rule, RuleSet, EvaluatorType } from "./rules/schema";
+export { EVALUATOR_TYPES } from "./rules/schema";
+export { ruleById, ruleByType } from "./rules/policy";
+export type { RuleContext } from "./rules/engine";
 
-/** Typical length of stay, in days, per diagnosis code. */
-const TYPICAL_LOS: Record<string, number> = {
-  "K35.8": 4,
-  I10: 0,
-  A09: 3,
-  "J18.9": 5,
-};
+/** The rules this engine knows how to run, in file order. */
+export const INSPECTION_RULES = POLICY.rules;
 
-/** Two claims are "similar" when these three fields agree closely. */
-const SIMILARITY_THRESHOLD = 0.8;
-
-export type RuleContext = {
+/** Run every rule and return the flags it produces. */
+export function evaluateRules({
+  claim,
+  claims,
+}: {
   claim: Claim;
-  /** The full claim set, for rules that compare claims to each other. */
   claims: Claim[];
-};
-
-export type InspectionRule = {
-  id: string;
-  version: string;
-  source: string;
-  title: string;
-  description: string;
-  /** Flags this rule produces for a claim, and nothing else. */
-  evaluate: (ctx: RuleContext) => Flag[];
-};
-
-const flag = (
-  ruleId: string,
-  message: string,
-  severity: Flag["severity"] = "warn",
-): Flag => ({
-  ruleId,
-  message,
-  severity,
-});
-
-const days = (length: string): number => {
-  const n = Number.parseInt(length, 10);
-  return Number.isFinite(n) ? n : 0;
-};
-
-const overlap = (a: Claim, b: Claim): number => {
-  const same = [
-    codeOf(a.diagnosis) === codeOf(b.diagnosis),
-    codeOf(a.procedure) === codeOf(b.procedure),
-    days(a.length) === days(b.length),
-  ].filter(Boolean).length;
-  return same / 3;
-};
-
-export const INSPECTION_RULES: InspectionRule[] = [
-  {
-    id: "dx-procedure",
-    version: "1.0.0",
-    source: "Pola diagnosis↔tindakan internal (synthetic demo)",
-    title: "Kesesuaian diagnosis ↔ tindakan",
-    description:
-      "Setiap diagnosis hanya menerima daftar kode tindakan tertentu. Kode di luar daftar itu skornya naik dan klaim tetap ditahan untuk ditinjau.",
-    evaluate: ({ claim }) =>
-      isPlausible(codeOf(claim.diagnosis), codeOf(claim.procedure))
-        ? []
-        : [flag("dx-procedure", "Kode tindakan tidak sesuai dengan diagnosis")],
-  },
-  {
-    id: "length-of-stay",
-    version: "1.0.0",
-    source: "Pola lama rawat per diagnosis (synthetic demo)",
-    title: "Durasi rawat di atas pola umum",
-    description:
-      "Membandingkan lama rawat dengan pola diagnosis yang sama. Pola berbeda antar RS, jadi angka ini harus dikalibrasi lokal.",
-    evaluate: ({ claim }) => {
-      const typical = TYPICAL_LOS[codeOf(claim.diagnosis)];
-      if (typical === undefined) return [];
-      return days(claim.length) > typical
-        ? [
-            flag(
-              "length-of-stay",
-              `Durasi rawat di atas pola umum (${claim.length}, biasanya ${typical} hari)`,
-            ),
-          ]
-        : [];
-    },
-  },
-  {
-    id: "missing-evidence",
-    version: "1.0.0",
-    source: "SOP dokumen pendukung internal (synthetic demo)",
-    title: "Dokumen pendukung",
-    description:
-      "Menandai tindakan invasif yang dikirim tanpa resume medis atau dokumen pendukung yang tercatat.",
-    evaluate: ({ claim }) => {
-      const invasive = INVASIVE.has(codeOf(claim.procedure));
-      const documented = (claim.documents?.length ?? 0) > 0;
-      return invasive && !documented
-        ? [
-            flag(
-              "missing-evidence",
-              "Tindakan invasif tanpa dokumen pendukung tercatat",
-              "info",
-            ),
-          ]
-        : [];
-    },
-  },
-  {
-    id: "similarity",
-    version: "1.0.0",
-    source: "Perbandingan antar klaim (synthetic demo)",
-    title: "Kemiripan klaim",
-    description:
-      "Mendeteksi diagnosis, tindakan, dan lama rawat yang mirip dengan klaim lain — penanda klaim tertukar atau terduplikasi.",
-    evaluate: ({ claim, claims }) => {
-      const near = claims
-        .filter((c) => c.id !== claim.id)
-        .map((c) => ({ id: c.id, score: overlap(claim, c) }))
-        .filter((c) => c.score >= SIMILARITY_THRESHOLD)
-        .sort((a, b) => b.score - a.score);
-
-      return near
-        .slice(0, 1)
-        .map((n) =>
-          flag(
-            "similarity",
-            `Kemiripan ${Math.round(n.score * 100)}% dengan klaim ${n.id}`,
-          ),
-        );
-    },
-  },
-];
-
-/**
- * Run every rule and return the flags it produces.
- *
- * Each rule returns only its own flags, so a recompute replaces one rule's
- * contribution without disturbing the others. A revision that fixes
- * diagnosis↔tindakan must not silently delete a similarity finding.
- */
-export function evaluateRules(ctx: RuleContext): Flag[] {
-  return INSPECTION_RULES.flatMap((r) => r.evaluate(ctx));
+}): Flag[] {
+  return POLICY.rules.flatMap((rule) =>
+    RULE_EVALUATORS[rule.type](rule, { claim, claims }),
+  );
 }
 
 /**
@@ -181,22 +49,28 @@ export function replaceFlagsForRule(
  * Re-run one rule across the whole claim set.
  *
  * Flags, score and status are refreshed together. Refreshing flags alone would
- * leave a claim showing 18/100 "Aman" while a warning sits on screen — the
- * score has to be a function of the findings, never a parallel number.
+ * leave a claim showing "Aman" while a warning sits on screen — the score has
+ * to be a function of the findings, never a parallel number.
  */
 export function recomputeRule(claims: Claim[], ruleId: string): Claim[] {
-  const rule = INSPECTION_RULES.find((r) => r.id === ruleId);
+  const rule = POLICY.rules.find((r) => r.id === ruleId);
   if (!rule) return claims;
 
   const next = claims.map((claim) => {
-    const fresh = rule.evaluate({ claim, claims });
+    const fresh = RULE_EVALUATORS[rule.type](rule, { claim, claims });
     return { ...claim, flags: replaceFlagsForRule(claim.flags, ruleId, fresh) };
   });
 
   return next.map(settle);
 }
 
-/** Bring a claim's derived fields in line with its flags. */
+/**
+ * Bring a claim's derived fields in line with its flags.
+ *
+ * A claim the coder has already decided is left alone. Re-deriving status from
+ * findings on load would silently undo an approval — the findings do not change
+ * just because the page was reloaded, so neither should the decision.
+ */
 function settle(claim: Claim): Claim {
   const decided =
     claim.status === CLAIM_STATUS.approved ||
@@ -205,9 +79,6 @@ function settle(claim: Claim): Claim {
   return {
     ...claim,
     score,
-    // Re-deriving status on load would silently undo an approval: the findings
-    // do not change just because the page was reloaded, so neither should the
-    // coder's decision.
     status: decided ? claim.status : statusFor(score, claim.flags),
   };
 }
@@ -220,6 +91,23 @@ export function evaluateAll(claims: Claim[]): Claim[] {
 }
 
 /** Build a claim's starting flags from a full evaluation. */
-export function initialFlags(claim: Claim, claims: Claim[]): Flag[] {
-  return evaluateRules({ claim, claims });
+export const initialFlags = (claim: Claim, claims: Claim[]): Flag[] =>
+  evaluateRules({ claim, claims });
+
+/** The plausibility table, as it currently sits in the loaded policy. */
+function dxProcedurePairs(): Record<string, string[]> {
+  const rule = POLICY.rules.find((r) => r.type === "dx_procedure");
+  return rule && rule.type === "dx_procedure" ? rule.params.pairs : {};
 }
+
+/** Procedure codes the loaded policy accepts for a diagnosis, if any. */
+export function allowedCodes(diagnosisCode: string): string[] {
+  return dxProcedurePairs()[codeOf(diagnosisCode)] ?? [];
+}
+
+/** Whether a diagnosis/procedure pair passes the loaded plausibility rule. */
+export const isPlausible = (diagnosisCode: string, code: string): boolean =>
+  allowedCodes(diagnosisCode).includes(code);
+
+/** Diagnosis codes the policy has a plausibility table for. */
+export const knownDiagnoses = (): string[] => Object.keys(dxProcedurePairs());
