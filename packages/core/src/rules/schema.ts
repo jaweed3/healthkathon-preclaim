@@ -22,6 +22,7 @@ export const EVALUATOR_TYPES = [
   "required_evidence",
   "similarity",
   "icd10_primary_diagnosis",
+  "local_anomaly",
 ] as const;
 
 const base = {
@@ -74,6 +75,16 @@ export const RuleSchema = z.discriminatedUnion("type", [
     params: z.object({
       chapters: z.array(z.string().min(1)).min(1),
       message: z.string().min(1),
+    }),
+  }),
+  z.object({
+    ...base,
+    type: z.literal("local_anomaly"),
+    params: z.object({
+      cohortFields: z.array(z.enum(["service", "diagnosis"])).min(1),
+      minimumCohort: z.number().int().min(3),
+      features: z.array(z.enum(["length", "amount"])).min(1),
+      zThreshold: z.number().positive(),
     }),
   }),
 ]);
