@@ -95,8 +95,9 @@ export default function ClaimDetail(props: Props) {
               <div className="flag-icon">{f.severity === 'warn' ? '!' : 'i'}</div>
               <div>
                 {DEMO_CASE[f.ruleId] && <span className="demo-case">{DEMO_CASE[f.ruleId]}</span>}
-                <b>{f.message}</b>
-                <p>{RULE_BLURB[f.ruleId] ?? 'Ditemukan oleh pemeriksaan otomatis.'}</p>
+                  <b>{f.message}</b>
+                  <p>{RULE_BLURB[f.ruleId] ?? 'Ditemukan oleh pemeriksaan otomatis.'}</p>
+                  <small>Alasan: {f.reason} · Sumber: {f.source} · Evidence: {f.evidence.join('; ')}</small>
               </div>
             </div>
           ))}
