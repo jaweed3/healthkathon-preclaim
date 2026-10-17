@@ -7,7 +7,7 @@ type Props = {
   knownDiagnoses: string[]
   /** Procedure codes the rule set accepts for a given diagnosis code. */
   allowedFor: (diagnosis: string) => string[]
-  onCreate: (draft: Omit<Claim, 'id' | 'status' | 'score' | 'flags' | 'history'>) => void
+  onCreate: (draft: Omit<Claim, 'id' | 'status' | 'score' | 'readiness' | 'flags' | 'history'>) => void
   onClose: () => void
   dark: boolean
 }
