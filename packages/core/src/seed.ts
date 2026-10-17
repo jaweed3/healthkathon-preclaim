@@ -1,70 +1,87 @@
-import { CLAIM_STATUS, ClaimSchema, type Claim } from "./schema";
+import { evaluateAll } from "./rules";
+import { ClaimSchema, type Claim } from "./schema";
 
-/** Synthetic data only — no real patient information. */
-const SEED: Claim[] = [
+/**
+ * Fixture claims. Synthetic only — no real patient information.
+ *
+ * Flags are deliberately absent: they are derived from the rule set at module
+ * load rather than written by hand. The previous fixture carried a similarity
+ * flag pointing at `CLM-240917-019`, a claim that did not exist in the
+ * dataset, so no amount of evaluating the rules could reproduce it.
+ */
+const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
   {
     id: "CLM-240918-021",
     patient: "Pasien A-104",
     service: "Rawat inap • Bedah",
     date: "18 Sep 2026",
     amount: "Rp 18.450.000",
-    status: CLAIM_STATUS.review,
+    status: "Perlu ditinjau",
     score: 78,
     diagnosis: "K35.8 — Apendisitis akut",
-    procedure: "47.09 — Apendektomi lainnya",
+    procedure: "99.04 — Transfusi eritrosit",
     length: "4 hari",
-    flags: [
-      "Ketidaksesuaian diagnosis ↔ tindakan",
-      "Kemiripan tinggi dengan klaim CLM-240917-019",
-    ],
   },
   {
     id: "CLM-240918-020",
     patient: "Pasien B-220",
-    service: "Rawat jalan • Jantung",
+    service: "Rawat inap • Interna",
     date: "18 Sep 2026",
-    amount: "Rp 2.850.000",
-    status: CLAIM_STATUS.ready,
-    score: 18,
-    diagnosis: "I10 — Hipertensi esensial",
-    procedure: "93.96 — Terapi respirasi",
-    length: "0 hari",
-    flags: [],
+    amount: "Rp 7.150.000",
+    status: "Perlu ditinjau",
+    score: 42,
+    diagnosis: "A09 — Gastroenteritis",
+    procedure: "99.04 — Transfusi eritrosit",
+    length: "4 hari",
+    documents: ["Resume medis"],
   },
   {
+    // Near-duplicate of CLM-240918-020: same diagnosis, procedure and length.
+    // Exists so the similarity rule has a real pair to find.
     id: "CLM-240918-019",
     patient: "Pasien C-089",
     service: "Rawat inap • Interna",
-    date: "17 Sep 2026",
+    date: "18 Sep 2026",
     amount: "Rp 7.200.000",
-    status: CLAIM_STATUS.approved,
-    score: 8,
+    status: "Perlu ditinjau",
+    score: 42,
     diagnosis: "A09 — Gastroenteritis",
     procedure: "99.04 — Transfusi eritrosit",
-    length: "3 hari",
-    flags: [],
+    length: "4 hari",
   },
   {
     id: "CLM-240918-018",
     patient: "Pasien D-312",
     service: "Rawat inap • Anak",
-    date: "17 Sep 2026",
+    date: "18 Sep 2026",
     amount: "Rp 5.100.000",
-    status: CLAIM_STATUS.ready,
-    score: 26,
+    status: "Perlu ditinjau",
+    score: 46,
     diagnosis: "J18.9 — Pneumonia",
     procedure: "93.90 — Respirasi buatan",
-    length: "5 hari",
-    flags: ["Durasi rawat di atas pola umum"],
+    length: "9 hari",
+  },
+  {
+    id: "CLM-240918-017",
+    patient: "Pasien E-405",
+    service: "Rawat jalan • Jantung",
+    date: "18 Sep 2026",
+    amount: "Rp 2.850.000",
+    status: "Siap submit",
+    score: 18,
+    diagnosis: "I10 — Hipertensi esensial",
+    procedure: "93.96 — Terapi respirasi",
+    length: "0 hari",
+    documents: ["Catatan poliklinik"],
   },
 ];
 
-/**
- * Parsed through the schema at module load.
- *
- * `SEED` is typed as `Claim[]`, so a malformed record would already be a
- * compile error; parsing it anyway means a mistake that slips through the type
- * (a stray status string, an out-of-range score) fails loudly here rather than
- * rendering as a broken claim.
- */
-export const seed: Claim[] = ClaimSchema.array().parse(SEED);
+export const seed: Claim[] = evaluateAll(
+  SEED_DATA.map((c) => ({ ...c, flags: [] })),
+);
+
+// Parse on load so a malformed fixture fails here rather than in the UI.
+ClaimSchema.array().parse(seed);
+
+/** Fixture only, before any rules ran — useful for tests and the generator. */
+export const rawSeed: Omit<Claim, "flags" | "history">[] = SEED_DATA;

@@ -1,6 +1,15 @@
 import { z } from "zod";
 
 /**
+ * A string with actual content.
+ *
+ * `z.string().min(1)` alone accepts `"   "`, which is not a code, not a claim
+ * id, and emphatically not a coder's justification. Zod validates `.min()`
+ * after `.trim()`, so this rejects whitespace-only input.
+ */
+export const nonBlank = z.string().trim().min(1);
+
+/**
  * The canonical status vocabulary, and the runtime schema that enforces it.
  *
  * This module is the single source of truth: the app, the worker API, and any
@@ -8,31 +17,41 @@ import { z } from "zod";
  * carried its own copy with English strings ('review'/'ready'/'approved'),
  * which silently drifted from the app's Indonesian vocabulary.
  */
-/**
- * A string with actual content.
- *
- * `nonBlank` alone accepts `"   "`, which is not a code, not a claim
- * id, and emphatically not a coder's justification. Zod validates `.min()`
- * after `.trim()`, so this rejects whitespace-only input.
- */
-const nonBlank = z.string().trim().min(1);
-
 export const CLAIM_STATUS = {
   review: "Perlu ditinjau",
   ready: "Siap submit",
   approved: "Disetujui",
+  approvedWithNote: "Disetujui dengan catatan",
 } as const;
 
 export const ClaimStatusSchema = z.enum([
   CLAIM_STATUS.review,
   CLAIM_STATUS.ready,
   CLAIM_STATUS.approved,
+  CLAIM_STATUS.approvedWithNote,
 ]);
 
 export type ClaimStatus = z.infer<typeof ClaimStatusSchema>;
 
-/** A single auditable change to a claim's procedure code. */
+/**
+ * A finding, attributed to the rule that produced it.
+ *
+ * `ruleId` is what makes recomputation safe: revising a claim must re-run only
+ * the rule whose inputs changed. Previously flags were bare strings and a
+ * revision overwrote the whole list, silently dropping unrelated findings such
+ * as claim-to-claim similarity.
+ */
+export const FlagSchema = z.object({
+  ruleId: nonBlank,
+  message: nonBlank,
+  severity: z.enum(["warn", "info"]),
+});
+
+export type Flag = z.infer<typeof FlagSchema>;
+
+/** A change to a claim's procedure code, with the coder's justification. */
 export const RevisionSchema = z.object({
+  kind: z.literal("revision"),
   at: z.iso.datetime(),
   from: nonBlank,
   to: nonBlank,
@@ -43,6 +62,30 @@ export const RevisionSchema = z.object({
 });
 
 export type Revision = z.infer<typeof RevisionSchema>;
+
+/**
+ * A coder's decision to submit a claim despite active findings.
+ *
+ * The note is mandatory. Approving a flagged claim without recording why is
+ * exactly the action an audit exists to prevent, so the schema makes it
+ * impossible to persist an approval that cannot be explained later.
+ */
+export const ApprovalSchema = z.object({
+  kind: z.literal("approval"),
+  at: z.iso.datetime(),
+  note: nonBlank,
+  score: z.number().int().min(0).max(100),
+  findingsAtApproval: z.array(FlagSchema),
+});
+
+export type Approval = z.infer<typeof ApprovalSchema>;
+
+export const AuditEventSchema = z.discriminatedUnion("kind", [
+  RevisionSchema,
+  ApprovalSchema,
+]);
+
+export type AuditEvent = z.infer<typeof AuditEventSchema>;
 
 export const ClaimSchema = z.object({
   id: nonBlank,
@@ -55,11 +98,16 @@ export const ClaimSchema = z.object({
   diagnosis: nonBlank,
   procedure: nonBlank,
   length: nonBlank,
-  flags: z.array(nonBlank),
-  revisions: z.array(RevisionSchema).optional(),
+  flags: z.array(FlagSchema),
+  /** Supporting documents recorded for this claim (resume, lab, imaging). */
+  documents: z.array(nonBlank).optional(),
+  history: z.array(AuditEventSchema).optional(),
 });
 
 export type Claim = z.infer<typeof ClaimSchema>;
+
+/** Everything the app persists locally, validated as one unit. */
+export const ClaimStoreSchema = z.object({ claims: z.array(ClaimSchema) });
 
 /**
  * One row of the local audit log.
@@ -73,7 +121,7 @@ export const AuditEntrySchema = z.object({
   claimId: nonBlank,
   patient: nonBlank,
   at: z.iso.datetime(),
-  revisions: z.array(RevisionSchema),
+  events: z.array(AuditEventSchema),
 });
 
 export type AuditEntry = z.infer<typeof AuditEntrySchema>;

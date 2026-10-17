@@ -1,21 +1,45 @@
 import { describe, expect, test } from "bun:test";
 import {
   CLAIM_STATUS,
-  REVIEW_THRESHOLD,
+  averageScore,
   codeOf,
-  flagsFor,
-  scoreClaim,
+  evaluateAll,
+  evaluateRules,
+  isPlausible,
+  knownDiagnoses,
+  allowedCodes,
+  recomputeRule,
+  replaceFlagsForRule,
+  REVIEW_THRESHOLD,
+  scoreFor,
+  scoreTone,
   statusFor,
-  seed,
 } from "./index";
-import type { Claim } from "./index";
+import type { Claim, Flag } from "./index";
+
+const warn = (ruleId: string): Flag => ({
+  ruleId,
+  message: "m",
+  severity: "warn",
+});
+const info = (ruleId: string): Flag => ({
+  ruleId,
+  message: "m",
+  severity: "info",
+});
 
 const claim = (over: Partial<Claim> = {}): Claim => ({
-  ...seed[0],
+  id: "CLM-TEST-001",
+  patient: "Pasien X",
+  service: "Rawat inap",
+  date: "18 Sep 2026",
+  amount: "Rp 1.000.000",
+  status: CLAIM_STATUS.review,
+  score: 0,
   diagnosis: "K35.8 — Apendisitis akut",
   procedure: "47.09 — Apendektomi lainnya",
-  score: 78,
-  status: CLAIM_STATUS.review,
+  length: "4 hari",
+  flags: [],
   ...over,
 });
 
@@ -29,69 +53,218 @@ describe("codeOf", () => {
   });
 });
 
-describe("scoreClaim", () => {
-  test("is deterministic for the same input", () => {
-    expect(scoreClaim(claim(), "47.11")).toBe(scoreClaim(claim(), "47.11"));
+describe("isPlausible", () => {
+  test("accepts a code the table lists", () => {
+    expect(isPlausible("K35.8", "47.09")).toBe(true);
   });
 
-  test("gives different codes different scores", () => {
-    expect(scoreClaim(claim(), "47.09")).not.toBe(scoreClaim(claim(), "47.12"));
+  test("rejects a code belonging to another diagnosis", () => {
+    expect(isPlausible("K35.8", "99.04")).toBe(false);
   });
 
-  test("scores an implausible code as high risk", () => {
-    // 99.04 is plausible for A09, not for appendicitis.
-    expect(scoreClaim(claim(), "99.04")).toBeGreaterThanOrEqual(
-      REVIEW_THRESHOLD,
-    );
+  test("rejects an unknown diagnosis rather than defaulting to allowed", () => {
+    expect(isPlausible("ZZZ.9", "47.09")).toBe(false);
+    expect(allowedCodes("ZZZ.9")).toEqual([]);
   });
 
-  test("scores a plausible code below the review threshold", () => {
-    expect(scoreClaim(claim(), "47.09")).toBeLessThan(REVIEW_THRESHOLD);
-  });
-
-  test("treats an empty code as implausible", () => {
-    expect(scoreClaim(claim(), "")).toBeGreaterThanOrEqual(REVIEW_THRESHOLD);
+  test("rejects an empty code", () => {
+    expect(isPlausible("K35.8", "")).toBe(false);
   });
 });
 
-describe("the revision flow cannot launder a claim", () => {
-  // The defect this guards: `correct()` used to hardcode score 12 and empty
-  // flags, so any code turned any claim green regardless of plausibility.
-  test("every wrong code leaves the claim in review", () => {
-    for (const code of ["", "99.04", "93.96", "47.99", "zzz"]) {
-      const score = scoreClaim(claim(), code);
-      expect(statusFor(score)).toBe(CLAIM_STATUS.review);
-    }
+describe("scoreFor", () => {
+  test("a claim with no findings scores low but not zero", () => {
+    expect(scoreFor([])).toBeGreaterThan(0);
+    expect(scoreFor([])).toBeLessThan(REVIEW_THRESHOLD);
   });
 
-  test("a plausible code clears the claim", () => {
-    expect(statusFor(scoreClaim(claim(), "47.09"))).toBe(CLAIM_STATUS.ready);
+  test("rises monotonically with the number of findings", () => {
+    expect(scoreFor([warn("length-of-stay")])).toBeLessThan(
+      scoreFor([warn("length-of-stay"), warn("similarity")]),
+    );
   });
 
-  test("flagsFor agrees with scoreClaim about plausibility", () => {
-    expect(flagsFor(claim(), "99.04")).toHaveLength(1);
-    expect(flagsFor(claim(), "47.09")).toHaveLength(0);
+  test("a diagnosis mismatch outweighs the other rules", () => {
+    expect(scoreFor([warn("dx-procedure")])).toBeGreaterThan(
+      scoreFor([warn("similarity")]),
+    );
+  });
+
+  test("an unknown rule still contributes something", () => {
+    expect(scoreFor([warn("who-knows")])).toBeGreaterThan(scoreFor([]));
+  });
+
+  test("never exceeds 100", () => {
+    const many = [
+      "dx-procedure",
+      "similarity",
+      "length-of-stay",
+      "missing-evidence",
+    ].map(warn);
+    expect(scoreFor(many)).toBeLessThanOrEqual(100);
+  });
+
+  test("info-level findings score below warn-level", () => {
+    expect(scoreFor([info("missing-evidence")])).toBeLessThan(
+      scoreFor([warn("similarity")]),
+    );
   });
 });
 
 describe("statusFor", () => {
-  test("treats the threshold as review", () => {
-    expect(statusFor(REVIEW_THRESHOLD)).toBe(CLAIM_STATUS.review);
+  test("any warning holds the claim for review even at a low score", () => {
+    // The defect this guards: score came from plausibility alone, so a claim
+    // with an active similarity warning read as 18/100 "Aman".
+    expect(
+      statusFor(scoreFor([warn("similarity")]), [warn("similarity")]),
+    ).toBe(CLAIM_STATUS.review);
   });
 
-  test("treats just below the threshold as ready", () => {
-    expect(statusFor(REVIEW_THRESHOLD - 1)).toBe(CLAIM_STATUS.ready);
+  test("no findings and a low score is ready", () => {
+    expect(statusFor(scoreFor([]), [])).toBe(CLAIM_STATUS.ready);
+  });
+
+  test("no findings but a high score is still review", () => {
+    expect(statusFor(95, [])).toBe(CLAIM_STATUS.review);
   });
 });
 
-describe("the status vocabulary", () => {
-  test("every seed claim uses a canonical status", () => {
-    const allowed = Object.values(CLAIM_STATUS);
-    for (const c of seed) expect(allowed).toContain(c.status);
+describe("score and findings cannot disagree", () => {
+  test("every fixture claim has a score consistent with its flags", () => {
+    for (const c of evaluateAll(fixtures())) {
+      expect(c.score).toBe(scoreFor(c.flags));
+    }
   });
 
-  test("no legacy English status survives in the seed", () => {
-    const legacy = ["review", "ready", "approved"];
-    for (const c of seed) expect(legacy).not.toContain(c.status);
+  test("every fixture claim with a warning is in review", () => {
+    for (const c of evaluateAll(fixtures())) {
+      if (c.flags.some((f) => f.severity === "warn")) {
+        expect(c.status).toBe(CLAIM_STATUS.review);
+      }
+    }
+  });
+
+  test("a clean fixture claim is ready to send", () => {
+    const clean = evaluateAll(fixtures()).find((c) => c.flags.length === 0);
+    expect(clean).toBeDefined();
+    expect(clean!.status).toBe(CLAIM_STATUS.ready);
   });
 });
+
+describe("scoring survives a revision", () => {
+  test("fixing the code drops the dx finding and the score with it", () => {
+    const claims = evaluateAll(fixtures());
+    const target = claims.find((c) =>
+      c.flags.some((f) => f.ruleId === "dx-procedure"),
+    )!;
+    expect(target.score).toBeGreaterThan(REVIEW_THRESHOLD);
+
+    const fixed = {
+      ...target,
+      procedure: allowedCodes(codeOf(target.diagnosis))[0],
+    };
+    const next = recomputeRule([fixed], "dx-procedure").map((c) => ({
+      ...c,
+      score: scoreFor(c.flags),
+      status: statusFor(scoreFor(c.flags), c.flags),
+    }));
+
+    expect(next[0].flags.some((f) => f.ruleId === "dx-procedure")).toBe(false);
+    expect(next[0].score).toBeLessThan(target.score);
+  });
+
+  test("an unrelated finding survives the revision", () => {
+    const claims = evaluateAll(fixtures());
+    const dup = claims.filter((c) =>
+      c.flags.some((f) => f.ruleId === "similarity"),
+    );
+    expect(dup.length).toBeGreaterThan(0);
+
+    const after = recomputeRule(claims, "dx-procedure");
+    for (const c of after) {
+      const before = claims.find((x) => x.id === c.id)!;
+      const wasSimilar = before.flags.some((f) => f.ruleId === "similarity");
+      expect(c.flags.some((f) => f.ruleId === "similarity")).toBe(wasSimilar);
+    }
+  });
+});
+
+describe("replaceFlagsForRule", () => {
+  test("replaces only the named rule", () => {
+    expect(
+      replaceFlagsForRule(
+        [warn("dx-procedure"), warn("similarity")],
+        "dx-procedure",
+        [],
+      ),
+    ).toEqual([warn("similarity")]);
+  });
+
+  test("does not mutate the input", () => {
+    const input = [warn("dx-procedure"), warn("similarity")];
+    replaceFlagsForRule(input, "dx-procedure", []);
+    expect(input).toHaveLength(2);
+  });
+
+  test("an unknown rule id leaves the list untouched", () => {
+    const input = [warn("similarity")];
+    expect(replaceFlagsForRule(input, "nope", [warn("dx-procedure")])).toEqual(
+      input,
+    );
+  });
+});
+
+describe("helpers", () => {
+  test("knownDiagnoses has no duplicates", () => {
+    const list = knownDiagnoses();
+    expect(new Set(list).size).toBe(list.length);
+  });
+
+  test("scoreTone follows the threshold", () => {
+    expect(scoreTone(REVIEW_THRESHOLD)).toBe("high");
+    expect(scoreTone(0)).toBe("low");
+  });
+
+  test("averageScore of nothing is zero, not NaN", () => {
+    expect(averageScore([])).toBe(0);
+  });
+
+  test("evaluateRules is deterministic", () => {
+    const c = claim();
+    expect(evaluateRules({ claim: c, claims: [c] })).toEqual(
+      evaluateRules({ claim: c, claims: [c] }),
+    );
+  });
+});
+
+/** Local copy so scoring tests do not depend on the exported fixture. */
+function fixtures(): Claim[] {
+  return [
+    claim({ id: "F1", procedure: "99.04 — Transfusi", documents: [] }),
+    claim({
+      id: "F2",
+      diagnosis: "A09 — Gastroenteritis",
+      procedure: "99.04 — Transfusi",
+      documents: ["Resume"],
+    }),
+    claim({
+      id: "F3",
+      diagnosis: "A09 — Gastroenteritis",
+      procedure: "99.04 — Transfusi",
+      documents: ["Resume"],
+    }),
+    claim({
+      id: "F4",
+      diagnosis: "J18.9 — Pneumonia",
+      procedure: "93.90 — Ventilasi",
+      length: "9 hari",
+    }),
+    claim({
+      id: "F5",
+      diagnosis: "I10 — Hipertensi",
+      procedure: "93.96 — Terapi",
+      length: "0 hari",
+      documents: ["Catatan"],
+    }),
+  ];
+}

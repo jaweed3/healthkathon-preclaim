@@ -1,11 +1,16 @@
-import { CLAIM_STATUS, type Claim } from "./schema";
+import {
+  CLAIM_STATUS,
+  type Claim,
+  type ClaimStatus,
+  type Flag,
+} from "./schema";
 
 /**
  * Which procedure codes are plausible for a diagnosis.
  *
- * This is the prototype's whole rule set: explicit, inspectable, and
- * deterministic. No model, no inference — the UI promises explainable
- * findings, so the explanation has to be readable by a coder.
+ * A deliberately small, inspectable table. The UI promises explainable
+ * findings, so the explanation has to be readable by a coder rather than
+ * inferred by a model.
  */
 export const PLAUSIBLE: Record<string, string[]> = {
   "K35.8": ["47.09", "47.11", "47.12"], // appendicitis → appendectomy
@@ -29,29 +34,48 @@ export function isPlausible(diagnosisCode: string, code: string): boolean {
   return allowedCodes(diagnosisCode).includes(code);
 }
 
-/** Score for a diagnosis/procedure pair, derived from the entered code. */
-export function scoreClaim(claim: Claim, code: string): number {
-  const rank = (PLAUSIBLE[codeOf(claim.diagnosis)] ?? []).indexOf(code);
-  if (rank === -1) return 82;
-  return [18, 26, 34][rank] ?? 40;
-}
+/**
+ * How much each rule contributes to the risk score.
+ *
+ * A diagnosis/procedure mismatch outranks the rest: it is the finding most
+ * likely to be a coding error rather than an artefact of the data.
+ */
+const RULE_WEIGHT: Record<string, number> = {
+  "dx-procedure": 46,
+  similarity: 34,
+  "length-of-stay": 28,
+  "missing-evidence": 16,
+};
 
-export function flagsFor(claim: Claim, code: string): string[] {
-  const allowed = PLAUSIBLE[codeOf(claim.diagnosis)] ?? [];
-  return allowed.includes(code)
-    ? []
-    : ["Kode tindakan tidak sesuai dengan diagnosis"];
-}
+/** A claim with no findings is not zero risk, just low. */
+const BASELINE = 8;
 
 /**
- * A claim stays in review at or above this score.
+ * The risk score, derived from the findings.
  *
- * This is the gate that stops the revision flow from being a rubber stamp:
- * an implausible code scores 82 and therefore never clears.
+ * Deriving it here rather than storing an independent number is what keeps the
+ * score and the findings from disagreeing — previously the score came from
+ * procedure plausibility alone, so a claim carrying a similarity warning could
+ * still present as 18/100 "Aman" with a warning on screen.
  */
+export function scoreFor(flags: Flag[]): number {
+  const total = flags.reduce(
+    (sum, f) => sum + (RULE_WEIGHT[f.ruleId] ?? 12),
+    BASELINE,
+  );
+  return Math.min(100, total);
+}
+
 export const REVIEW_THRESHOLD = 60;
 
-export function statusFor(score: number): "Perlu ditinjau" | "Siap submit" {
+/**
+ * Status is driven by findings first, score second.
+ *
+ * Any warning holds the claim for a coder decision, regardless of how low the
+ * score is. A claim with an active finding must never read as ready to send.
+ */
+export function statusFor(score: number, flags: Flag[] = []): ClaimStatus {
+  if (flags.some((f) => f.severity === "warn")) return CLAIM_STATUS.review;
   return score >= REVIEW_THRESHOLD ? CLAIM_STATUS.review : CLAIM_STATUS.ready;
 }
 
