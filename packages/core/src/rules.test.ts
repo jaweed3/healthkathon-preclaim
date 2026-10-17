@@ -260,6 +260,60 @@ describe("icd10_primary_diagnosis — the myth, handled correctly", () => {
   });
 });
 
+describe("local_anomaly baseline", () => {
+  test("reports an outlier only with a sufficiently large matching local cohort", () => {
+    const peerLengths = [2, 3, 4, 5, 6];
+    const peers = peerLengths.map((length, i) =>
+      claim({
+        id: `COHORT-${i}`,
+        length: `${length} hari`,
+        amount: "Rp 5.000.000",
+      }),
+    );
+    const outlier = claim({
+      id: "COHORT-OUTLIER",
+      length: "20 hari",
+      amount: "Rp 5.000.000",
+    });
+    const result = evaluateRules({
+      claim: outlier,
+      claims: [...peers, outlier],
+    }).find((f) => f.ruleId === "local-anomaly");
+
+    expect(result).toBeDefined();
+    expect(result?.severity).toBe("info");
+    expect(result?.deviationScore).toBeGreaterThan(2.5);
+    expect(result?.reason).toContain("simpangan baku");
+    expect(result?.evidence[0]).toContain("5 klaim pembanding");
+  });
+
+  test("does not infer an anomaly from too few peers or a zero-variance cohort", () => {
+    const peers = [1, 2, 3, 4].map((n) =>
+      claim({
+        id: `COHORT-${n}`,
+        length: "4 hari",
+        amount: "Rp 5.000.000",
+      }),
+    );
+    const outlier = claim({
+      id: "COHORT-OUTLIER",
+      length: "20 hari",
+      amount: "Rp 5.000.000",
+    });
+    expect(
+      evaluateRules({
+        claim: outlier,
+        claims: [...peers.slice(0, 3), outlier],
+      }).some((f) => f.ruleId === "local-anomaly"),
+    ).toBe(false);
+    expect(
+      evaluateRules({ claim: outlier, claims: [...peers, outlier] }).some(
+        (f) => f.ruleId === "local-anomaly",
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("replaceFlagsForRule", () => {
   const dxFlag: Flag = {
     ruleId: "dx-procedure",
