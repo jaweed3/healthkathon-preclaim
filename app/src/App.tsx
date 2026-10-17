@@ -26,6 +26,7 @@ import StatsBar from './components/StatsBar'
 import { appendEvent, clearAudit, readAudit } from './lib/audit-log'
 import { clearClaims, loadClaims, saveClaims } from './lib/claim-store'
 import { readString, writeString } from './lib/storage'
+import { downloadClaimExport, parseClaimImport } from './lib/claim-transfer'
 
 const THEME_KEY = 'preclaim-theme'
 const FIXTURE_DATE = '18 Sep 2026'
@@ -240,9 +241,9 @@ export default function App() {
    * Scored by the same rules as everything else, so a claim cannot enter as
    * clean just because it was typed in rather than revised.
    */
-  const createClaim = (draft: Omit<Claim, 'id' | 'status' | 'score' | 'flags' | 'history'>) => {
+  const createClaim = (draft: Omit<Claim, 'id' | 'status' | 'score' | 'readiness' | 'flags' | 'history'>) => {
     // Score the draft as a provisional claim so the rules can run against it.
-    const provisional = { ...draft, id: '', score: 0, status: CLAIM_STATUS.review, flags: [] } as Claim
+    const provisional = { ...draft, id: '', score: 0, readiness: 0, status: CLAIM_STATUS.review, flags: [] } as Claim
     const flags = initialFlags(provisional, claims)
     const score = scoreFor(flags)
     const claim: Claim = {
@@ -250,6 +251,7 @@ export default function App() {
       id: nextClaimId(claims, draft.date),
       flags,
       score,
+      readiness: readinessFor(flags),
       status: statusFor(score, flags),
     }
 
@@ -278,6 +280,19 @@ export default function App() {
     setNotice('Data demo dipulihkan ke kondisi awal.')
   }
 
+  const importClaims = async (file: File) => {
+    try {
+      const imported = parseClaimImport(JSON.parse(await file.text()))
+      const next = evaluateAll(imported)
+      setClaims(next)
+      setSelectedId(next[0]?.id ?? '')
+      setView('all')
+      setNotice(`${next.length} klaim berhasil diimpor.`)
+    } catch {
+      setNotice('Impor gagal: file harus berisi JSON klaim PreClaim yang valid.')
+    }
+  }
+
   const reviewCount = claims.filter((c) => c.status === CLAIM_STATUS.review).length
   const atRisk = claims.filter((c) => c.score >= REVIEW_THRESHOLD).length
 
@@ -300,6 +315,8 @@ export default function App() {
           dark={dark}
           onToggleTheme={toggleTheme}
           onReset={resetDemo}
+          onImport={importClaims}
+          onExport={() => downloadClaimExport(claims)}
           menuOpen={mobileNavOpen}
           onToggleMenu={() => setMobileNavOpen((open) => !open)}
         />
