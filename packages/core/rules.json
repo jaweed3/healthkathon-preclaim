@@ -10,6 +10,7 @@
       "title": "Kesesuaian diagnosis ↔ tindakan",
       "description": "Setiap diagnosis hanya menerima daftar kode tindakan tertentu. Kode di luar daftar itu skornya naik dan klaim tetap ditahan untuk ditinjau.",
       "source": "Tabel pola diagnosis-tindakan internal. SINTETIS untuk demo, belum divalidasi koder.",
+      "basis": "synthetic",
       "params": {
         "message": "Kode tindakan tidak sesuai dengan diagnosis",
         "pairs": {
@@ -28,6 +29,7 @@
       "title": "Durasi rawat di atas pola umum",
       "description": "Membandingkan lama rawat dengan pola diagnosis yang sama. Pola berbeda antar RS, jadi angka ini harus dikalibrasi lokal.",
       "source": "Pola lama rawat internal per diagnosis. SINTETIS untuk demo.",
+      "basis": "synthetic",
       "params": {
         "typical": { "K35.8": 4, "I10": 0, "A09": 3, "J18.9": 5 }
       }
@@ -40,6 +42,7 @@
       "title": "Dokumen pendukung",
       "description": "Menandai tindakan berisiko tinggi yang dikirim tanpa resume medis atau dokumen pendukung yang tercatat.",
       "source": "SOP dokumen pendukung internal. SINTETIS untuk demo.",
+      "basis": "synthetic",
       "params": {
         "message": "Tindakan invasif tanpa dokumen pendukung tercatat",
         "procedures": ["47.09", "47.11", "47.12", "93.90", "93.91", "99.04"]
@@ -53,6 +56,7 @@
       "title": "Kemiripan klaim",
       "description": "Mendeteksi diagnosis, tindakan, lama rawat, dan nilai tagihan yang mirip pada klaim berbeda — penanda klaim tertukar atau terduplikasi. Nilai ikut dibandingkan karena diagnosis, tindakan, dan lama rawat saja sering sama pada keluhan rutin, sehingga tidak cukup untuk menandai apa pun.",
       "source": "Perbandingan antar klaim, ambang internal. SINTETIS untuk demo.",
+      "basis": "synthetic",
       "params": {
         "threshold": 0.8,
         "fields": ["diagnosis", "procedure", "length", "amount"]
@@ -66,6 +70,7 @@
       "title": "Kode gejala (Bab R) sebagai diagnosis utama ketika diagnosis definitif sudah ditegakkan",
       "description": "Kode gejala tetap sah sebagai diagnosis utama bila diagnosis definitif belum ditegakkan. Aturan ini hanya berlaku bila ada diagnosis definitif yang tercatat pada klaim yang sama.",
       "source": "ICD-10-CM Official Guidelines for Coding and Reporting I.C.18.a-I.C.18.b (CMS); AAPC 'Mythbusters: Signs and Symptoms'. Rujukan publik, bukan aturan lokal.",
+      "basis": "official",
       "params": {
         "chapters": ["R"],
         "message": "Diagnosis utama berupa kode gejala sementara diagnosis definitif juga tercatat pada klaim ini"
