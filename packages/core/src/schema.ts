@@ -47,6 +47,8 @@ export const FlagSchema = z.object({
   reason: nonBlank,
   source: nonBlank,
   evidence: z.array(nonBlank).min(1),
+  /** Standardized distance for statistical findings; not model confidence. */
+  deviationScore: z.number().positive().optional(),
   severity: z.enum(["warn", "info"]),
 });
 
