@@ -1,5 +1,12 @@
 import { evaluateAll } from "./rules";
-import { ClaimSchema, type Claim } from "./schema";
+import { CLAIM_STATUS, ClaimSchema, type Claim } from "./schema";
+
+/**
+ * Raw fixture shape: score, readiness, status and flags are all derived by the
+ * rule engine, so writing them by hand would only create something to keep in
+ * sync.
+ */
+export type SeedDraft = Omit<Claim, "flags" | "history" | "score" | "readiness" | "status">;
 
 /**
  * Fixture claims. Synthetic only — no real patient information.
@@ -9,15 +16,13 @@ import { ClaimSchema, type Claim } from "./schema";
  * flag pointing at `CLM-240917-019`, a claim that did not exist in the
  * dataset, so no amount of evaluating the rules could reproduce it.
  */
-const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
+const SEED_DATA: SeedDraft[] = [
   {
     id: "CLM-260918-021",
     patient: "Pasien A-104",
     service: "Rawat inap • Bedah",
     date: "18 Sep 2026",
     amount: "Rp 18.450.000",
-    status: "Perlu ditinjau",
-    score: 78,
     diagnosis: "K35.8 — Apendisitis akut",
     procedure: "99.04 — Transfusi eritrosit",
     length: "4 hari",
@@ -28,8 +33,6 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
     service: "Rawat inap • Interna",
     date: "18 Sep 2026",
     amount: "Rp 7.150.000",
-    status: "Perlu ditinjau",
-    score: 42,
     diagnosis: "A09 — Gastroenteritis",
     procedure: "99.04 — Transfusi eritrosit",
     length: "4 hari",
@@ -43,8 +46,6 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
     service: "Rawat inap • Interna",
     date: "18 Sep 2026",
     amount: "Rp 7.150.000",
-    status: "Perlu ditinjau",
-    score: 42,
     diagnosis: "A09 — Gastroenteritis",
     procedure: "99.04 — Transfusi eritrosit",
     length: "4 hari",
@@ -55,8 +56,6 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
     service: "Rawat inap • Anak",
     date: "18 Sep 2026",
     amount: "Rp 5.100.000",
-    status: "Perlu ditinjau",
-    score: 46,
     diagnosis: "J18.9 — Pneumonia",
     procedure: "93.90 — Respirasi buatan",
     length: "9 hari",
@@ -67,8 +66,6 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
     service: "Rawat jalan • Jantung",
     date: "18 Sep 2026",
     amount: "Rp 2.850.000",
-    status: "Siap submit",
-    score: 18,
     diagnosis: "I10 — Hipertensi esensial",
     procedure: "93.96 — Terapi respirasi",
     length: "0 hari",
@@ -77,11 +74,17 @@ const SEED_DATA: Omit<Claim, "flags" | "history">[] = [
 ];
 
 export const seed: Claim[] = evaluateAll(
-  SEED_DATA.map((c) => ({ ...c, flags: [] })),
+  SEED_DATA.map((c) => ({
+    ...c,
+    flags: [],
+    status: CLAIM_STATUS.review,
+    score: 0,
+    readiness: 0,
+  })),
 );
 
 // Parse on load so a malformed fixture fails here rather than in the UI.
 ClaimSchema.array().parse(seed);
 
 /** Fixture only, before any rules ran — useful for tests and the generator. */
-export const rawSeed: Omit<Claim, "flags" | "history">[] = SEED_DATA;
+export const rawSeed: SeedDraft[] = SEED_DATA;

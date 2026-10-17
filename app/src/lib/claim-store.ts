@@ -20,7 +20,10 @@ export function loadClaims(fallback: Claim[]): Claim[] {
   // Re-derive score/status from the persisted flags rather than trusting the
   // stored values, so an older or hand-edited store cannot present a claim as
   // clean when its findings say otherwise.
-  return evaluateAll(stored.claims)
+  return evaluateAll(stored.claims.map((claim) => ({
+    ...claim,
+    readiness: claim.readiness ?? 0,
+  })))
 }
 
 export function saveClaims(claims: Claim[]): boolean {

@@ -39,7 +39,25 @@ export function scoreFor(flags: Flag[]): number {
   return Math.min(100, total);
 }
 
-export const REVIEW_THRESHOLD = 60;
+export const REVIEW_THRESHOLD = 60
+
+/**
+ * Readiness: how close a claim is to being submittable right now.
+ *
+ * Deliberately derived from the SAME finding list as the risk score, so the
+ * two can never contradict each other. They answer different questions of the
+ * same facts: risk is "how suspicious is this, and in what order should I
+ * look", readiness is "can this leave the building now".
+ *
+ * A warning is a blocker and costs a lot. An informational finding is an
+ * advisory and costs a little. That is the whole difference in behaviour --
+ * two views of one list, not two opinions.
+ */
+export function readinessFor(flags: Flag[]): number {
+  const blockers = flags.filter((f) => f.severity === 'warn').length
+  const advisories = flags.filter((f) => f.severity === 'info').length
+  return Math.max(0, 100 - blockers * 40 - advisories * 10);
+}
 
 /**
  * Status is driven by findings first, score second.

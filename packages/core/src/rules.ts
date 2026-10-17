@@ -2,7 +2,7 @@ import { codeOf } from "./codes";
 import { CLAIM_STATUS, type Claim, type Flag } from "./schema";
 import { RULE_EVALUATORS } from "./rules/engine";
 import { POLICY } from "./rules/policy";
-import { scoreFor, statusFor } from "./scoring";
+import { readinessFor, scoreFor, statusFor } from "./scoring";
 
 export { POLICY };
 export type { Rule, RuleSet, EvaluatorType } from "./rules/schema";
@@ -79,6 +79,7 @@ function settle(claim: Claim): Claim {
   return {
     ...claim,
     score,
+    readiness: readinessFor(claim.flags),
     status: decided ? claim.status : statusFor(score, claim.flags),
   };
 }

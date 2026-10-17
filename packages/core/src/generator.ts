@@ -136,6 +136,7 @@ export function generate(options: GeneratorOptions): Generated[] {
         amount: `Rp ${formatIdr(amountFor(rnd))}`,
         status: "Perlu ditinjau",
         score: 0,
+        readiness: 0,
         diagnosis,
         procedure: procedureCode,
         length,

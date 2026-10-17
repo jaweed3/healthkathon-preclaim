@@ -59,6 +59,10 @@ export const RevisionSchema = z.object({
   evidence: z.boolean(),
   previousScore: z.number().int().min(0).max(100),
   newScore: z.number().int().min(0).max(100),
+  previousReadiness: z.number().int().min(0).max(100).optional(),
+  newReadiness: z.number().int().min(0).max(100).optional(),
+  previousFindings: z.array(FlagSchema).optional(),
+  newFindings: z.array(FlagSchema).optional(),
 });
 
 export type Revision = z.infer<typeof RevisionSchema>;
@@ -94,7 +98,10 @@ export const ClaimSchema = z.object({
   date: nonBlank,
   amount: nonBlank,
   status: ClaimStatusSchema,
+  /** Risk: how suspicious, drives review priority. Derived from findings. */
   score: z.number().int().min(0).max(100),
+  /** Readiness: how close to submittable now. Derived from the same findings. */
+  readiness: z.number().int().min(0).max(100).default(0),
   diagnosis: nonBlank,
   procedure: nonBlank,
   length: nonBlank,
