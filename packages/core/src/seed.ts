@@ -1,7 +1,7 @@
-import { CLAIM_STATUS, type Claim } from "./types";
+import { CLAIM_STATUS, ClaimSchema, type Claim } from "./schema";
 
 /** Synthetic data only — no real patient information. */
-export const seed: Claim[] = [
+const SEED: Claim[] = [
   {
     id: "CLM-240918-021",
     patient: "Pasien A-104",
@@ -58,3 +58,13 @@ export const seed: Claim[] = [
     flags: ["Durasi rawat di atas pola umum"],
   },
 ];
+
+/**
+ * Parsed through the schema at module load.
+ *
+ * `SEED` is typed as `Claim[]`, so a malformed record would already be a
+ * compile error; parsing it anyway means a mistake that slips through the type
+ * (a stray status string, an out-of-range score) fails loudly here rather than
+ * rendering as a broken claim.
+ */
+export const seed: Claim[] = ClaimSchema.array().parse(SEED);

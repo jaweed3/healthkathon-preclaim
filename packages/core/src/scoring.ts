@@ -1,4 +1,4 @@
-import { CLAIM_STATUS, type Claim } from "./types";
+import { CLAIM_STATUS, type Claim } from "./schema";
 
 /**
  * Which procedure codes are plausible for a diagnosis.

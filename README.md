@@ -53,11 +53,45 @@ bun run worker:dev       # or: bun run worker:deploy
 
 ```bash
 bun run typecheck   # core + worker
-bun run test        # core unit tests, then app e2e
+bun run test        # 30 core unit tests, then 10 app e2e (Playwright)
 bun run build       # app + deck
 ```
 
-## Why `@preclaim/core` exists
+## Layout
+
+```
+packages/core/   Zod schemas + inferred types + scoring rules + seed data
+app/             Vite + React prototype   (app/test/ — Playwright specs)
+worker/          Cloudflare Worker beta API
+deck/            Pitch deck
+```
+
+Core unit tests are `*.test.ts` and run on `bun test`; the app specs are
+`*.spec.ts` and run on Playwright.
+
+## Why Zod
+
+`@preclaim/core` defines the domain as Zod schemas and **infers** the
+TypeScript types from them, so the runtime contract and the compile-time types
+cannot drift apart the way a hand-written interface and a hand-written parser
+eventually do.
+
+Validation is applied where input is actually untrusted:
+
+- **The audit log.** `localStorage` is shared with every script on the origin
+  and persists forever. `readAudit()` parses through `AuditLogSchema`, so a
+  hand-edited or half-written entry is discarded instead of being shown as
+  though it were a real coder justification.
+- **The seed data**, parsed once at module load so a malformed claim fails
+  loudly rather than rendering broken.
+- **The worker's own responses**, validated at startup with the same schema a
+  client would use — drift fails in CI rather than in a consumer.
+
+Note `nonBlank` rather than `z.string().min(1)`: the latter accepts `"   "`,
+which is not a justification.
+
+Synthetic internals that are already compile-time constants are deliberately
+left unvalidated.
 
 The worker used to carry its own copy of the claim status vocabulary
 (`review`/`ready`/`approved`) while the app used
