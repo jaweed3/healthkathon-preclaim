@@ -44,6 +44,9 @@ export type ClaimStatus = z.infer<typeof ClaimStatusSchema>;
 export const FlagSchema = z.object({
   ruleId: nonBlank,
   message: nonBlank,
+  reason: nonBlank,
+  source: nonBlank,
+  evidence: z.array(nonBlank).min(1),
   severity: z.enum(["warn", "info"]),
 });
 
@@ -162,4 +165,25 @@ export const HealthResponseSchema = z.object({
   ok: z.literal(true),
   service: nonBlank,
   environment: nonBlank,
+});
+
+export const AnalyzeRequestSchema = z.object({
+  claim: ClaimSchema,
+  claims: z.array(ClaimSchema).default([]),
+});
+
+export const AnalyzeResponseSchema = z.object({
+  claimId: nonBlank,
+  riskScore: z.number().int().min(0).max(100),
+  readiness: z.number().int().min(0).max(100),
+  status: ClaimStatusSchema,
+  findings: z.array(FlagSchema),
+});
+
+export const BatchClaimsRequestSchema = z.object({
+  claims: z.array(ClaimSchema).min(1).max(500),
+});
+
+export const ExportClaimsRequestSchema = z.object({
+  claims: z.array(ClaimSchema).max(500),
 });
