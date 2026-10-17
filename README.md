@@ -1,10 +1,15 @@
 # PreClaim Guard
 
-**Detect before submit. Explain before reject.**
+<div align="center">
+  <img src="Chameleon%20Healthcare%20Approval%20Mascot.png" alt="Maskot bunglon PreClaim Guard membawa perisai kesehatan dan checklist" width="300" />
+  <h3>Asisten ramah untuk pemeriksaan klaim sebelum pengajuan.</h3>
+  <p><strong>Temukan sinyal sebelum submit — keputusan tetap di tangan koder.</strong></p>
+</div>
 
-A local-first quality gate for hospital casemix coders. It checks claim drafts
-before submission, shows what fired and why, and leaves the decision to the
-human. Synthetic data only.
+PreClaim Guard membantu koder casemix meninjau draf klaim sebelum diajukan.
+Aplikasi menampilkan temuan pemeriksaan beserta alasan dan sumbernya, sementara
+keputusan akhir tetap berada di tangan koder. Prototipe local-first ini
+menggunakan **data sintetis saja**.
 
 ## Run
 
