@@ -1,4 +1,4 @@
-import { Menu, Moon, RotateCcw, ShieldCheck, Sun, X } from 'lucide-react'
+import { Download, Menu, Moon, RotateCcw, ShieldCheck, Sun, Upload, X } from 'lucide-react'
 import type { View } from './Sidebar'
 
 type Props = {
@@ -6,6 +6,8 @@ type Props = {
   dark: boolean
   onToggleTheme: () => void
   onReset: () => void
+  onImport: (file: File) => void
+  onExport: () => void
   menuOpen: boolean
   onToggleMenu: () => void
 }
@@ -16,7 +18,7 @@ const TITLES: Record<View, string> = {
   risky: 'Klaim berisiko tinggi',
 }
 
-export default function Header({ view, dark, onToggleTheme, onReset, menuOpen, onToggleMenu }: Props) {
+export default function Header({ view, dark, onToggleTheme, onReset, onImport, onExport, menuOpen, onToggleMenu }: Props) {
   return (
     <header>
       <button
@@ -34,6 +36,22 @@ export default function Header({ view, dark, onToggleTheme, onReset, menuOpen, o
         <p className="sub">Periksa sebelum dikirim. Pahami sebelum memutuskan.</p>
       </div>
       <div className="header-actions">
+        <label className="ghost import-button" title="Impor klaim JSON">
+          <Upload size={14} /> Impor
+          <input
+            type="file"
+            accept="application/json,.json"
+            aria-label="Impor klaim JSON"
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0]
+              if (file) onImport(file)
+              event.currentTarget.value = ''
+            }}
+          />
+        </label>
+        <button className="ghost" onClick={onExport} title="Ekspor klaim sebagai JSON">
+          <Download size={14} /> Ekspor
+        </button>
         <span className="privacy">
           <ShieldCheck size={14} /> Data tersimpan lokal
         </span>
