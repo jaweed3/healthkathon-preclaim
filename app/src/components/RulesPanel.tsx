@@ -29,6 +29,7 @@ export default function RulesPanel({ onClose, dark }: { onClose: () => void; dar
               <b>{rule.title}</b>
               <code className="rule-id">{rule.id}</code>
               <span className="rule-version">v{rule.version}</span>
+              <span className={`rule-basis basis-${rule.basis}`}>Basis: {rule.basis}</span>
             </div>
             <p>{rule.description}</p>
             <p className="rule-source">Sumber: {rule.source}</p>
