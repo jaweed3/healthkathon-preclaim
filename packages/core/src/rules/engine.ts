@@ -12,7 +12,10 @@ export type RuleContext = { claim: Claim; claims: Claim[] };
  * small is what stops "policy-as-code" from quietly becoming a language nobody
  * can review.
  */
-type Evaluator = (rule: Rule, ctx: RuleContext) => Omit<Flag, "reason" | "source" | "evidence">[];
+type Evaluator = (
+  rule: Rule,
+  ctx: RuleContext,
+) => Omit<Flag, "reason" | "source" | "evidence">[];
 
 /**
  * Fraction of the compared fields two claims agree on.
@@ -41,7 +44,61 @@ function similarity(a: Claim, b: Claim, fields: string[]): number {
   return same / fields.length;
 }
 
+function localCohort(
+  claim: Claim,
+  claims: Claim[],
+  rule: Extract<Rule, { type: "local_anomaly" }>,
+): Claim[] {
+  return claims.filter(
+    (candidate) =>
+      candidate.id !== claim.id &&
+      rule.params.cohortFields.every((field) =>
+        field === "service"
+          ? candidate.service === claim.service
+          : codeOf(candidate.diagnosis) === codeOf(claim.diagnosis),
+      ),
+  );
+}
+
+function featureValue(claim: Claim, feature: "length" | "amount"): number {
+  return feature === "length" ? daysOf(claim.length) : amountOf(claim.amount);
+}
+
+function zScore(value: number, cohortValues: number[]): number | undefined {
+  const mean =
+    cohortValues.reduce((sum, n) => sum + n, 0) / cohortValues.length;
+  const variance =
+    cohortValues.reduce((sum, n) => sum + (n - mean) ** 2, 0) /
+    cohortValues.length;
+  const stddev = Math.sqrt(variance);
+  if (stddev === 0) return undefined;
+  return (value - mean) / stddev;
+}
+
 export const RULE_EVALUATORS = {
+  local_anomaly: (rule, { claim, claims }) => {
+    if (rule.type !== "local_anomaly") return [];
+    const cohort = localCohort(claim, claims, rule);
+    if (cohort.length < rule.params.minimumCohort) return [];
+
+    const findings: Omit<Flag, "reason" | "source" | "evidence">[] = [];
+    for (const feature of rule.params.features) {
+      const values = cohort.map((candidate) =>
+        featureValue(candidate, feature),
+      );
+      const score = zScore(featureValue(claim, feature), values);
+      if (score === undefined || Math.abs(score) < rule.params.zThreshold)
+        continue;
+      findings.push({
+        ruleId: rule.id,
+        message: `${feature === "length" ? "Lama rawat" : "Nilai klaim"} menyimpang dari pola cohort lokal`,
+        severity: rule.severity,
+        deviationScore: Math.abs(score),
+      });
+    }
+    return findings;
+  },
+
   dx_procedure: (rule, { claim }) => {
     if (rule.type !== "dx_procedure") return [];
     const dx = codeOf(claim.diagnosis);
