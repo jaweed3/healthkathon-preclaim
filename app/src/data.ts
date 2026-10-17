@@ -13,10 +13,7 @@ export const seed: Claim[] = [
     diagnosis: 'K35.8 — Apendisitis akut',
     procedure: '47.09 — Apendektomi lainnya',
     length: '4 hari',
-    flags: [
-      'Ketidaksesuaian diagnosis ↔ tindakan',
-      'Kemiripan tinggi dengan klaim CLM-240917-019',
-    ],
+    flags: ['Ketidaksesuaian diagnosis ↔ tindakan', 'Kemiripan tinggi dengan klaim CLM-240917-019'],
   },
   {
     id: 'CLM-240918-020',

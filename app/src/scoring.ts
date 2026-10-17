@@ -9,8 +9,8 @@ import type { Claim } from './types'
  */
 const PLAUSIBLE: Record<string, string[]> = {
   'K35.8': ['47.09', '47.11', '47.12'], // appendicitis → appendectomy
-  'I10': ['93.96'], // essential hypertension → respiratory therapy
-  'A09': ['99.04'], // gastroenteritis → transfusion
+  I10: ['93.96'], // essential hypertension → respiratory therapy
+  A09: ['99.04'], // gastroenteritis → transfusion
   'J18.9': ['93.90', '93.91'], // pneumonia → mechanical ventilation
 }
 
