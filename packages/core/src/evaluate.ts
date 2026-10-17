@@ -28,6 +28,7 @@ export type RuleMetrics = {
   falseNegatives: number;
   precision: number | null;
   recall: number | null;
+  falsePositiveRate: number | null;
 };
 
 export type Report = {
@@ -35,13 +36,27 @@ export type Report = {
   claimsWithAnomaly: number;
   /** Share of claims carrying at least one finding. */
   flaggedShare: number;
+  normalClaims: number;
+  normalFalsePositives: number;
+  normalFalsePositiveRate: number | null;
+  normalFalsePositiveRateByRule: { ruleId: string; rate: number | null; falsePositives: number; normalClaims: number }[];
+  maxEvaluationMs: number;
+  performanceTargetMet: boolean;
   perRule: RuleMetrics[];
 };
 
 const ratio = (n: number, d: number) => (d === 0 ? null : n / d);
 
 export function evaluate(generated: Generated[]): Report {
+  const startedAt = performance.now();
   const results = runRules(generated);
+  const evaluationMs = performance.now() - startedAt;
+  const normal = results.filter((r) => r.expected.length === 0);
+  const normalFalsePositives = normal.filter((r) => r.actual.some((f) => f.severity === "warn")).length;
+  const normalFalsePositiveRateByRule = INSPECTION_RULES.map((rule) => {
+    const falsePositives = normal.filter((r) => r.actual.some((f) => f.ruleId === rule.id)).length;
+    return { ruleId: rule.id, rate: ratio(falsePositives, normal.length), falsePositives, normalClaims: normal.length };
+  });
 
   const perRule: RuleMetrics[] = INSPECTION_RULES.map((rule) => {
     let tp = 0;
@@ -66,6 +81,7 @@ export function evaluate(generated: Generated[]): Report {
       falseNegatives: fn,
       precision: ratio(tp, tp + fp),
       recall: ratio(tp, tp + fn),
+      falsePositiveRate: ratio(fp, results.length - (tp + fn)),
     };
   });
 
@@ -75,6 +91,12 @@ export function evaluate(generated: Generated[]): Report {
     flaggedShare:
       results.filter((r) => r.actual.some((f) => f.severity === "warn"))
         .length / results.length,
+    normalClaims: normal.length,
+    normalFalsePositives,
+    normalFalsePositiveRate: ratio(normalFalsePositives, normal.length),
+    normalFalsePositiveRateByRule,
+    maxEvaluationMs: evaluationMs,
+    performanceTargetMet: evaluationMs <= 1000,
     perRule,
   };
 }
@@ -99,6 +121,10 @@ export function formatReport(report: Report): string {
     `claims              ${report.claims}`,
     `dengan anomali      ${report.claimsWithAnomaly}`,
     `dengan peringatan   ${(report.flaggedShare * 100).toFixed(1)}%`,
+    `normal synthetic    ${report.normalClaims}`,
+    `FPR normal           ${pct(report.normalFalsePositiveRate)}`,
+    ...report.normalFalsePositiveRateByRule.map((m) => `  ${m.ruleId.padEnd(20)} ${pct(m.rate)} (${m.falsePositives}/${m.normalClaims})`),
+    `waktu evaluator     ${report.maxEvaluationMs.toFixed(2)} ms (target <= 1000 ms: ${report.performanceTargetMet ? "PASS" : "FAIL"})`,
     "",
     "rule                  n     TP    FP    FN   prec   rec",
     ...rows,
