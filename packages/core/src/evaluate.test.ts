@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { evaluate, formatReport, runStandardEvaluation } from "./evaluate";
-import { generate } from "./generator";
+import { generate, hardCaseSuite, runRules } from "./generator";
 import { codeOf, daysOf, amountOf } from "./codes";
 import { INSPECTION_RULES } from "./rules";
 
@@ -137,6 +137,27 @@ describe("evaluation", () => {
     expect(report.flaggedShare).toBeLessThan(0.75);
   });
 
+  test("reports and gates the false-positive rate on the normal synthetic set", () => {
+    expect(report.normalClaims).toBeGreaterThan(0);
+    expect(report.normalFalsePositiveRate).not.toBeNull();
+    expect(report.normalFalsePositiveRate!).toBeLessThan(0.1);
+  });
+
+  test("measures evaluator runtime against the one-second target", () => {
+    expect(report.maxEvaluationMs).toBeGreaterThanOrEqual(0);
+    expect(report.performanceTargetMet).toBe(true);
+  });
+
+  test("every emitted finding has reason, source, and evidence", () => {
+    for (const result of runRules(generate({ count: 150, seed: 2026 }))) {
+      for (const finding of result.actual) {
+        expect(finding.reason.trim()).not.toBe("");
+        expect(finding.source.trim()).not.toBe("");
+        expect(finding.evidence.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
   test("the report states its own limitation", () => {
     expect(formatReport(report)).toContain(
       "bukan akurasi terhadap klaim nyata",
@@ -176,5 +197,22 @@ describe("similarity false positives", () => {
 
     expect(amountOf(source.claim.amount)).not.toBe(amountOf(miss.claim.amount));
     expect(source.claim.id).not.toBe(miss.claim.id);
+  });
+});
+
+describe("hard-case suite", () => {
+  test("checks explicit boundary cases independently of random injection", () => {
+    const cases = hardCaseSuite();
+    expect(cases.length).toBeGreaterThanOrEqual(4);
+    for (const item of cases) {
+      const context = item.expectedRuleIds.includes("similarity")
+        ? [{ ...item.claim, id: `${item.claim.id}-PEER` }]
+        : [];
+      const actual = runRules([{ claim: item.claim, expected: item.expectedRuleIds, injected: [] }],).map((r) => r.actual.map((f) => f.ruleId)).flat();
+      const withContext = item.expectedRuleIds.includes("similarity")
+        ? runRules([{ claim: item.claim, expected: item.expectedRuleIds, injected: [] }, ...context.map((claim) => ({ claim, expected: [], injected: [] }))])[0].actual.map((f) => f.ruleId)
+        : actual;
+      for (const ruleId of item.expectedRuleIds) expect(withContext).toContain(ruleId);
+    }
   });
 });
