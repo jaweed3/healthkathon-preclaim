@@ -17,6 +17,7 @@ import {
   type Claim,
 } from '@preclaim/core'
 import AddClaimModal from './components/AddClaimModal'
+import OnboardingModal from './components/OnboardingModal'
 import ClaimDetail from './components/ClaimDetail'
 import ClaimList from './components/ClaimList'
 import Header from './components/Header'
@@ -29,6 +30,7 @@ import { readString, writeString } from './lib/storage'
 import { downloadClaimExport, parseClaimImport } from './lib/claim-transfer'
 
 const THEME_KEY = 'preclaim-theme'
+const ONBOARDING_KEY = 'preclaim-onboarding-seen'
 const FIXTURE_DATE = '18 Sep 2026'
 
 /**
@@ -82,6 +84,7 @@ export default function App() {
   const [revisionOpen, setRevisionOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
+  const [onboardingOpen, setOnboardingOpen] = useState(() => readString(ONBOARDING_KEY) !== 'true')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [newCode, setNewCode] = useState('')
   const [reason, setReason] = useState('')
@@ -128,6 +131,11 @@ export default function App() {
       writeString(THEME_KEY, next ? 'dark' : 'light')
       return next
     })
+
+  const closeOnboarding = () => {
+    writeString(ONBOARDING_KEY, 'true')
+    setOnboardingOpen(false)
+  }
 
   const record = (updated: Claim, event: AuditEvent) => {
     appendEvent(updated, event)
@@ -243,7 +251,14 @@ export default function App() {
    */
   const createClaim = (draft: Omit<Claim, 'id' | 'status' | 'score' | 'readiness' | 'flags' | 'history'>) => {
     // Score the draft as a provisional claim so the rules can run against it.
-    const provisional = { ...draft, id: '', score: 0, readiness: 0, status: CLAIM_STATUS.review, flags: [] } as Claim
+    const provisional = {
+      ...draft,
+      id: '',
+      score: 0,
+      readiness: 0,
+      status: CLAIM_STATUS.review,
+      flags: [],
+    } as Claim
     const flags = initialFlags(provisional, claims)
     const score = scoreFor(flags)
     const claim: Claim = {
@@ -298,7 +313,13 @@ export default function App() {
 
   return (
     <div className={`shell ${dark ? 'theme-dark' : ''}`}>
-      {mobileNavOpen && <button className="mobile-nav-backdrop" aria-label="Tutup navigasi" onClick={() => setMobileNavOpen(false)} />}
+      {mobileNavOpen && (
+        <button
+          className="mobile-nav-backdrop"
+          aria-label="Tutup navigasi"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
       <Sidebar
         view={view}
         onView={setView}
@@ -317,6 +338,7 @@ export default function App() {
           onReset={resetDemo}
           onImport={importClaims}
           onExport={() => downloadClaimExport(claims)}
+          onShowGuide={() => setOnboardingOpen(true)}
           menuOpen={mobileNavOpen}
           onToggleMenu={() => setMobileNavOpen((open) => !open)}
         />
@@ -359,6 +381,7 @@ export default function App() {
       </main>
 
       {rulesOpen && <RulesPanel dark={dark} onClose={() => setRulesOpen(false)} />}
+      {onboardingOpen && <OnboardingModal onClose={closeOnboarding} />}
       {addOpen && (
         <AddClaimModal
           knownDiagnoses={knownDiagnoses()}
