@@ -14,15 +14,15 @@ bun install && bun run dev     # http://127.0.0.1:5173
 
 ## Commands
 
-| | |
-|---|---|
-| `bun run dev` | app on :5173 |
-| `bun run test` | Core + app + Worker contract + agent-browser e2e |
-| `bun run typecheck` | core + worker |
-| `bun run evaluate` | per-rule precision/recall, normal-set FPR, and runtime on synthetic claims |
-| `bun run build` | app + deck |
-| `bun run worker:dev` | beta API (not called by the app) |
-| `docker compose up --build` | static app demo on http://localhost:4173 |
+|                             |                                                                            |
+| --------------------------- | -------------------------------------------------------------------------- |
+| `bun run dev`               | app on :5173                                                               |
+| `bun run test`              | Core + app + Worker contract + agent-browser e2e                           |
+| `bun run typecheck`         | core + worker                                                              |
+| `bun run evaluate`          | per-rule precision/recall, normal-set FPR, and runtime on synthetic claims |
+| `bun run build`             | app + deck                                                                 |
+| `bun run worker:dev`        | beta API (not called by the app)                                           |
+| `docker compose up --build` | static app demo on http://localhost:4173                                   |
 
 ## Layout
 
@@ -39,11 +39,16 @@ so a status string cannot drift between them.
 
 ## What it does
 
-Four executable rules, each with `id`, `version`, `source` and `severity` in
+Six executable rules, each with `id`, `version`, `source` and `severity` in
 `packages/core/rules.json`: diagnosis↔procedure plausibility, length-of-stay
-threshold, missing supporting documents, and claim-to-claim similarity. A fifth
-rule follows ICD-10-CM guideline I.C.18.a–b. The rules panel shows each one
-with its source; a coder can read a finding and disagree with it.
+threshold, missing supporting documents, claim-to-claim similarity, and an
+explainable local-anomaly baseline. A fifth rule follows ICD-10-CM guideline
+I.C.18.a–b. The anomaly baseline compares length of stay and claim amount against
+a sufficiently large same-service, same-diagnosis cohort. It is a transparent
+statistical heuristic, not trained ML, a clinical standard, or a fraud
+probability; deviation magnitude is shown in standard deviations, not as model
+confidence. The rules panel
+shows each rule with its source; a coder can read a finding and disagree with it.
 
 Findings carry the rule that produced them. Correcting a procedure re-runs
 only the diagnosis rule, so an unrelated finding — a similarity warning, say —
