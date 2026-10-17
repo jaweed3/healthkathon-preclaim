@@ -7,6 +7,7 @@ PreClaim Guard is a local-first prototype for hospital casemix coders. It checks
 ## Repository layout
 
 - `app/` — runnable Vite + React prototype
+- `worker/` — Cloudflare Worker holding the beta claim API. Deployed independently; the `app/` prototype does not call it yet (it runs fully local-first).
 - `proposal-draft.md` — solution proposal
 - `deck/` — pitch deck source and generated presentation
 - `archive/` — previous proposal artifact
@@ -26,7 +27,7 @@ Open `http://127.0.0.1:5173/`.
 ```bash
 cd app
 npm run build
-npx playwright test
+npm test
 ```
 
 The prototype uses synthetic data only. It is an explainable pre-submit quality gate, not an automatic fraud adjudication system.
