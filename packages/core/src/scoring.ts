@@ -7,7 +7,7 @@ import { CLAIM_STATUS, type Claim } from "./schema";
  * deterministic. No model, no inference — the UI promises explainable
  * findings, so the explanation has to be readable by a coder.
  */
-const PLAUSIBLE: Record<string, string[]> = {
+export const PLAUSIBLE: Record<string, string[]> = {
   "K35.8": ["47.09", "47.11", "47.12"], // appendicitis → appendectomy
   I10: ["93.96"], // essential hypertension → respiratory therapy
   A09: ["99.04"], // gastroenteritis → transfusion
@@ -16,6 +16,18 @@ const PLAUSIBLE: Record<string, string[]> = {
 
 /** `47.09 — Apendektomi lainnya` → `47.09` */
 export const codeOf = (label: string): string => label.split(" — ")[0].trim();
+
+/** Every diagnosis the rule set knows about, for pickers and the rules view. */
+export const knownDiagnoses = (): string[] => Object.keys(PLAUSIBLE);
+
+/** The procedure codes accepted for a diagnosis code, if it is known. */
+export const allowedCodes = (diagnosisCode: string): string[] =>
+  PLAUSIBLE[diagnosisCode] ?? [];
+
+/** Whether a diagnosis/procedure pair passes the plausibility rule. */
+export function isPlausible(diagnosisCode: string, code: string): boolean {
+  return allowedCodes(diagnosisCode).includes(code);
+}
 
 /** Score for a diagnosis/procedure pair, derived from the entered code. */
 export function scoreClaim(claim: Claim, code: string): number {

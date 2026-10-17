@@ -3,12 +3,15 @@ import {
   CLAIM_STATUS,
   codeOf,
   flagsFor,
+  REVIEW_THRESHOLD,
   scoreClaim,
   seed,
   statusFor,
   type AuditEntry,
   type Claim,
 } from '@preclaim/core'
+import AddClaimModal from './components/AddClaimModal'
+import RulesPanel from './components/RulesPanel'
 import { appendAudit, readAudit } from './lib/audit-log'
 import { readString, writeString } from './lib/storage'
 import ClaimDetail from './components/ClaimDetail'
@@ -19,6 +22,15 @@ import StatsBar from './components/StatsBar'
 
 const THEME_KEY = 'preclaim-theme'
 
+/** Sequential ids in the same shape as the fixtures: CLM-240918-0NN. */
+function nextClaimId(claims: Claim[]): string {
+  const highest = claims.reduce((max, c) => {
+    const n = Number(c.id.split('-')[2])
+    return Number.isFinite(n) ? Math.max(max, n) : max
+  }, 0)
+  return `CLM-240918-${String(highest + 1).padStart(3, '0')}`
+}
+
 export default function App() {
   const [claims, setClaims] = useState<Claim[]>(seed)
   const [selected, setSelected] = useState<Claim>(seed[0])
@@ -28,6 +40,8 @@ export default function App() {
   const [dark, setDark] = useState(() => readString(THEME_KEY) === 'dark')
 
   const [revisionOpen, setRevisionOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
   const [newCode, setNewCode] = useState('47.09')
   const [reason, setReason] = useState('')
   const [evidence, setEvidence] = useState(false)
@@ -35,10 +49,11 @@ export default function App() {
   // Re-read after each revision so the trail rendered below matches what was persisted.
   const [audit, setAudit] = useState<AuditEntry[]>(() => readAudit())
 
-  const shown = useMemo(
-    () => (view === 'review' ? claims.filter((c) => c.status === CLAIM_STATUS.review) : claims),
-    [claims, view],
-  )
+  const shown = useMemo(() => {
+    if (view === 'review') return claims.filter((c) => c.status === CLAIM_STATUS.review)
+    if (view === 'risky') return claims.filter((c) => c.score >= REVIEW_THRESHOLD)
+    return claims
+  }, [claims, view])
 
   const select = (c: Claim) => {
     setSelected(c)
@@ -95,6 +110,35 @@ export default function App() {
     )
   }
 
+  /**
+   * Add a draft claim and check it immediately.
+   *
+   * The score and flags come from the same rule set the revision flow uses, so
+   * a claim cannot enter the list as "clean" just because it was typed in
+   * rather than revised.
+   */
+  const createClaim = (draft: Omit<Claim, 'id' | 'status' | 'score' | 'flags' | 'revisions'>) => {
+    const base: Claim = { ...draft, id: '', score: 0, flags: [], status: CLAIM_STATUS.review }
+    const score = scoreClaim(base, codeOf(draft.procedure))
+    const claim: Claim = {
+      ...base,
+      id: nextClaimId(claims),
+      score,
+      status: statusFor(score),
+      flags: flagsFor(base, codeOf(draft.procedure)),
+    }
+
+    setClaims((cs) => [claim, ...cs])
+    setSelected(claim)
+    setAddOpen(false)
+    setView('all')
+    setNotice(
+      score >= REVIEW_THRESHOLD
+        ? `Klaim ${claim.id} ditambahkan dan ditahan untuk ditinjau.`
+        : `Klaim ${claim.id} ditambahkan. Tidak ada temuan aktif.`,
+    )
+  }
+
   const approve = () => {
     const updated: Claim = { ...selected, status: CLAIM_STATUS.approved }
     setClaims((cs) => cs.map((c) => (c.id === updated.id ? updated : c)))
@@ -123,8 +167,8 @@ export default function App() {
       <Sidebar
         view={view}
         onView={setView}
+        onShowRules={() => setRulesOpen(true)}
         reviewCount={claims.filter((c) => c.status === CLAIM_STATUS.review).length}
-        totalCount={claims.length}
       />
 
       <main>
@@ -136,7 +180,9 @@ export default function App() {
             shown={shown}
             selected={selected}
             onSelect={select}
-            onShowReview={() => setView('review')}
+            view={view}
+            onView={setView}
+            onAdd={() => setAddOpen(true)}
             total={claims.length}
             atRisk={claims.filter((c) => c.score >= 60).length}
           />
@@ -161,6 +207,9 @@ export default function App() {
           />
         </div>
       </main>
+
+      {rulesOpen && <RulesPanel onClose={() => setRulesOpen(false)} />}
+      {addOpen && <AddClaimModal onCreate={createClaim} onClose={() => setAddOpen(false)} />}
     </div>
   )
 }

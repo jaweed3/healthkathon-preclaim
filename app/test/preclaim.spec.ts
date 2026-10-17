@@ -182,3 +182,148 @@ test.describe('jejak audit terlihat oleh koder', () => {
     await expect(page.locator('.audit-trail')).toHaveCount(0)
   })
 })
+
+test.describe('filter klaim', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/')
+  })
+
+  test('filter Berisiko hanya menampilkan klaim berisiko', async ({ page }) => {
+    await page.getByRole('button', { name: /Berisiko/ }).click()
+
+    await expect(page.getByText('Klaim berisiko tinggi')).toBeVisible()
+    // Only CLM-240918-021 scores 60+ in the fixtures.
+    await expect(page.getByRole('button', { name: /CLM-240918-021/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /CLM-240918-020/ })).toHaveCount(0)
+  })
+
+  test('bisa kembali ke filter Semua setelah memilih Berisiko', async ({ page }) => {
+    await page.getByRole('button', { name: /Berisiko/ }).click()
+    await expect(page.getByRole('button', { name: /CLM-240918-020/ })).toHaveCount(0)
+
+    await page.getByRole('button', { name: /^Semua/ }).click()
+
+    await expect(page.getByText('Ikhtisar klaim')).toBeVisible()
+    await expect(page.getByRole('button', { name: /CLM-240918-020/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /CLM-240918-021/ })).toBeVisible()
+  })
+
+  test('hanya satu chip filter yang aktif pada satu waktu', async ({ page }) => {
+    const semua = page.getByRole('button', { name: /^Semua/ })
+    const berisiko = page.getByRole('button', { name: /Berisiko/ })
+
+    await expect(semua).toHaveClass(/filter-active/)
+    await expect(berisiko).not.toHaveClass(/filter-active/)
+
+    await berisiko.click()
+    await expect(berisiko).toHaveClass(/filter-active/)
+    await expect(semua).not.toHaveClass(/filter-active/)
+  })
+
+  test('badge Berisiko cocok dengan isi filter', async ({ page }) => {
+    const badge = await page.getByRole('button', { name: /Berisiko/ }).innerText()
+    const count = Number(badge.match(/\d+/)![0])
+
+    await page.getByRole('button', { name: /Berisiko/ }).click()
+
+    // The number on the chip must equal the number of rows it reveals.
+    await expect(page.locator('.table .tr.row')).toHaveCount(count)
+  })
+
+  test('nav Perlu ditinjau memfilter berdasarkan status', async ({ page }) => {
+    await page
+      .getByRole('button', { name: /Perlu ditinjau/ })
+      .first()
+      .click()
+
+    await expect(page.getByText('Klaim perlu ditinjau')).toBeVisible()
+    await expect(page.locator('.table .tr.row')).toHaveCount(1)
+  })
+})
+
+test.describe('tambah klaim', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/')
+  })
+
+  const openAdd = async (page) => {
+    await page.getByRole('button', { name: /Tambah klaim baru/ }).click()
+    await expect(page.locator('.revision-box')).toBeVisible()
+  }
+
+  test('menambahkan klaim dan menghitung skornya dari aturan', async ({ page }) => {
+    await openAdd(page)
+    await page.getByLabel('Pasien').fill('Pasien E-517')
+    await page.getByLabel('Kode tindakan').fill('47.09')
+    await page.getByLabel('Total tagihan').fill('Rp 4.500.000')
+    await page.getByRole('button', { name: 'Tambahkan klaim' }).click()
+
+    // 47.09 is plausible for K35.8, so the claim clears inspection.
+    await expect(page.getByText('Tidak ada temuan aktif')).toBeVisible()
+    await expect(page.locator('.detail .score-card')).toContainText('18/100')
+    await expect(page.locator('.stats').first()).toContainText('5')
+  })
+
+  test('kode tidak sesuai diagnosis ditahan untuk ditinjau', async ({ page }) => {
+    await openAdd(page)
+    await page.getByLabel('Pasien').fill('Pasien F-001')
+    // 99.04 belongs to A09, not to the K35.8 appendicitis draft.
+    await page.getByLabel('Kode tindakan').fill('99.04')
+    await page.getByLabel('Total tagihan').fill('Rp 3.200.000')
+    await page.getByRole('button', { name: 'Tambahkan klaim' }).click()
+
+    await expect(page.getByText('ditambahkan dan ditahan untuk ditinjau')).toBeVisible()
+    await expect(page.locator('.detail .score-card')).toContainText('82/100')
+    await expect(page.getByText('Kode tindakan tidak sesuai dengan diagnosis')).toBeVisible()
+  })
+
+  test('peringatan tampil sebelum konfirmasi saat kode meragukan', async ({ page }) => {
+    await openAdd(page)
+    await page.getByLabel('Pasien').fill('Pasien G-002')
+    await page.getByLabel('Kode tindakan').fill('99.04')
+    await expect(page.locator('.draft-check.warn')).toContainText('tidak ada di daftar')
+  })
+
+  test('tombol tambah nonaktif sampai field wajib terisi', async ({ page }) => {
+    await openAdd(page)
+    await expect(page.getByRole('button', { name: 'Tambahkan klaim' })).toBeDisabled()
+
+    await page.getByLabel('Pasien').fill('Pasien H-003')
+    await page.getByLabel('Kode tindakan').fill('47.09')
+    await page.getByLabel('Total tagihan').fill('Rp 1.000.000')
+    await expect(page.getByRole('button', { name: 'Tambahkan klaim' })).toBeEnabled()
+  })
+})
+
+test.describe('aturan pemeriksaan', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/')
+  })
+
+  test('membuka daftar aturan dari sidebar', async ({ page }) => {
+    await page.getByRole('button', { name: 'Aturan pemeriksaan' }).click()
+    await expect(page.getByRole('dialog', { name: 'Aturan pemeriksaan' })).toBeVisible()
+    await expect(page.getByText('Kesesuaian diagnosis ↔ tindakan')).toBeVisible()
+  })
+
+  test('menampilkan tabel kode yang diterima per diagnosis', async ({ page }) => {
+    await page.getByRole('button', { name: 'Aturan pemeriksaan' }).click()
+    const table = page.locator('.rule-pairs')
+    await expect(table).toContainText('K35.8')
+    await expect(table).toContainText('47.09, 47.11, 47.12')
+  })
+
+  test('menandai aturan yang dihitung dan yang hanya dideklarasi', async ({ page }) => {
+    await page.getByRole('button', { name: 'Aturan pemeriksaan' }).click()
+
+    await expect(page.locator('.rule-badge.computed')).toHaveCount(1)
+    await expect(page.locator('.rule-badge.declared').first()).toBeVisible()
+    await expect(page.getByRole('dialog')).toContainText('dihitung')
+  })
+
+  test('bisa ditutup', async ({ page }) => {
+    await page.getByRole('button', { name: 'Aturan pemeriksaan' }).click()
+    await page.getByRole('button', { name: 'Tutup aturan pemeriksaan' }).click()
+    await expect(page.getByRole('dialog', { name: 'Aturan pemeriksaan' })).toHaveCount(0)
+  })
+})

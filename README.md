@@ -54,9 +54,23 @@ bun run worker:dev       # or: bun run worker:deploy
 
 ```bash
 bun run typecheck   # core + worker
-bun run test        # 30 core unit tests, then 14 app e2e (Playwright)
+bun run test        # 43 core unit tests, then 27 app e2e (Playwright)
 bun run build       # app + deck
 ```
+
+## What the prototype does
+
+- **Filter** — `Semua` / `Berisiko` chips (score ≥ 60) and a `Perlu ditinjau`
+  nav filter (by status). These are separate filters with separate counts;
+  they were previously conflated, so the badge disagreed with the rows.
+- **Add claim** — `Klaim` in the list header. The draft is scored by the same
+  rule set as the revision flow, so a claim cannot enter as "clean" just
+  because it was typed in rather than revised.
+- **Aturan pemeriksaan** — the rules behind the findings, with the
+  diagnosis→procedure table. Rules the prototype actually computes are badged
+  `dihitung`; rules that only ship with the fixture are badged `dideklarasi`.
+  A coder should be able to read a finding and disagree with it — that is the
+  whole premise.
 
 ## Layout
 

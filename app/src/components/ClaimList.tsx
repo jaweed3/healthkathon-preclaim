@@ -1,5 +1,6 @@
-import { Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { CLAIM_STATUS, scoreTone } from '@preclaim/core'
+import type { View } from './Sidebar'
 import type { Claim } from '@preclaim/core'
 import StatusBadge from './StatusBadge'
 
@@ -7,12 +8,14 @@ type Props = {
   shown: Claim[]
   selected: Claim
   onSelect: (c: Claim) => void
-  onShowReview: () => void
+  view: View
+  onView: (v: View) => void
+  onAdd: () => void
   total: number
   atRisk: number
 }
 
-export default function ClaimList({ shown, selected, onSelect, onShowReview, total, atRisk }: Props) {
+export default function ClaimList({ shown, selected, onSelect, view, onView, onAdd, total, atRisk }: Props) {
   return (
     <section className="panel list-panel">
       <div className="panel-head">
@@ -21,17 +24,32 @@ export default function ClaimList({ shown, selected, onSelect, onShowReview, tot
           <span className="muted">Data dummy untuk simulasi</span>
         </div>
         <div className="filters">
-          <button className="filter-active">
+          <button
+            className={view === 'all' ? 'filter-active' : ''}
+            onClick={() => onView('all')}
+            aria-pressed={view === 'all'}
+          >
             Semua <b>{total}</b>
           </button>
-          <button onClick={onShowReview}>
+          <button
+            className={view === 'risky' ? 'filter-active' : ''}
+            onClick={() => onView('risky')}
+            aria-pressed={view === 'risky'}
+          >
             Berisiko <b>{atRisk}</b>
           </button>
           <button aria-label="Cari klaim" disabled title="Pencarian belum tersedia di prototype beta">
             <Search size={14} />
           </button>
+          <button className="filter-add" onClick={onAdd} aria-label="Tambah klaim baru">
+            <Plus size={14} /> Klaim
+          </button>
         </div>
       </div>
+
+      {shown.length === 0 ? (
+        <div className="empty-row">Tidak ada klaim yang cocok dengan filter ini.</div>
+      ) : null}
 
       <div className="table">
         <div className="tr th">
