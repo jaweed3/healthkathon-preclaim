@@ -4,8 +4,9 @@ import RevisionModal from './RevisionModal'
 import AuditTimeline from './AuditTimeline'
 import StatusBadge from './StatusBadge'
 
-type Props = {
+export type ClaimDetailProps = {
   claim: Claim
+  onClose: () => void
   /** Persisted decision history for this claim, oldest first. */
   history: AuditEvent[]
   notice: string
@@ -42,12 +43,12 @@ const DEMO_CASE: Record<string, string> = {
   similarity: 'Skenario demo: indikasi copy-paste',
 }
 
-export default function ClaimDetail(props: Props) {
+export default function ClaimDetail(props: ClaimDetailProps) {
   const { claim } = props
   const warnings = claim.flags.filter((f) => f.severity === 'warn')
 
   return (
-    <section className="panel detail">
+    <section className="panel detail" role="dialog" aria-modal="true" aria-label={`Detail klaim ${claim.id}`}>
       <div className="detail-top">
         <div>
           <span className="claim-id">{claim.id}</span>
@@ -57,6 +58,14 @@ export default function ClaimDetail(props: Props) {
           </span>
         </div>
         <StatusBadge status={claim.status} />
+        <button
+          className="detail-close"
+          onClick={props.onClose}
+          aria-label="Tutup detail klaim"
+          title="Tutup detail klaim"
+        >
+          ×
+        </button>
       </div>
 
       <div className={`score-card ${scoreTone(claim.score)}`}>
@@ -115,20 +124,20 @@ export default function ClaimDetail(props: Props) {
         </div>
       )}
 
-      <div className="facts">
-        <div>
+      <div className="facts" aria-label="Ringkasan informasi klaim">
+        <div className="fact-card fact-diagnosis">
           <span>Diagnosis utama</span>
           <b>{claim.diagnosis}</b>
         </div>
-        <div>
+        <div className="fact-card fact-procedure">
           <span>Tindakan</span>
           <b>{claim.procedure}</b>
         </div>
-        <div>
+        <div className="fact-card fact-length">
           <span>Lama rawat</span>
           <b>{claim.length}</b>
         </div>
-        <div>
+        <div className="fact-card fact-amount">
           <span>Total tagihan</span>
           <b>{claim.amount}</b>
         </div>
