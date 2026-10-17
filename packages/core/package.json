@@ -9,7 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
+    "test": "bun test ../../tests/core",
     "evaluate": "bun run src/cli.ts"
   },
   "devDependencies": {
